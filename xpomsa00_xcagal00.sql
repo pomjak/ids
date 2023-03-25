@@ -1,4 +1,10 @@
-
+DROP TABLE Customer;
+DROP TABLE Event;
+DROP TABLE Service;
+DROP TABLE Worker;
+DROP TABLE Reservation;
+DROP TABLE Room_event;
+DROP TABLE Room_accommodation;
 
 CREATE TABLE Customer (
     customer_id INT NOT NULL AUTO_INCREMENT,
@@ -52,15 +58,24 @@ CREATE TABLE Reservation (
     FOREIGN KEY (customer_id) REFERENCES Customer(customer_id)
 );
 
-CREATE TABLE Room (
-    room_id INT NOT NULL AUTO_INCREMENT,
-    type VARCHAR(20) NOT NULL,
+CREATE TABLE Room_event (
+        room_id INT NOT NULL AUTO_INCREMENT,
+        description VARCHAR(500) NOT NULL,
+        price DECIMAL(10, 2) NOT NULL   ,
+        type VARCHAR(20) NOT NULL,
+        max_capacity INT ,
+        area INT , 
+        -- is_booked BOOLEAN NOT NULL DEFAULT FALSE,
+        PRIMARY KEY (room_id)
+    );
+
+CREATE TABLE Room_accommodation (
+    room_id INT NOT NULL,
     description VARCHAR(500) NOT NULL,
     price DECIMAL(10, 2) NOT NULL   ,
     single_beds INT ,
     double_beds INT ,
-    max_capacity INT ,
-    area INT , 
-    is_booked BOOLEAN NOT NULL DEFAULT FALSE,
+    class_luxury VARCHAR(20) NOT NULL,
+    -- is_booked BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (room_id)
 );
