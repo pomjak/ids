@@ -1,38 +1,44 @@
 DROP TABLE Customer CASCADE CONSTRAINTS;
-DROP TABLE Event CASCADE CONSTRAINTS;
-DROP TABLE Service CASCADE CONSTRAINTS;
 DROP TABLE Worker CASCADE CONSTRAINTS;
 DROP TABLE Reservation CASCADE CONSTRAINTS;
+DROP TABLE Event CASCADE CONSTRAINTS;
+DROP TABLE Service CASCADE CONSTRAINTS;
 DROP TABLE Room_event CASCADE CONSTRAINTS;
 DROP TABLE Room_accommodation CASCADE CONSTRAINTS;
 DROP TABLE Reserved_rooms_acc CASCADE CONSTRAINTS;
 DROP TABLE Reserved_rooms_event CASCADE CONSTRAINTS;
 
+
 CREATE TABLE Customer (
-    personal_identification_number VARCHAR(11) NOT NULL,
+    personal_identification_number VARCHAR(11) NOT NULL 
+    CONSTRAINT PIN_check_regex 
+    CHECK (regexp_like(personal_identification_number, '^[0-9]{6}/[0-9]{4}$')),
+
     first_name VARCHAR(100) NOT NULL,
     surname VARCHAR(100) NOT NULL,
-    email VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL 
+    CONSTRAINT mail_check_regex 
+    CHECK (regexp_like(email, '^[A-Za-z]+[A-Za-z0-9.]+@[A-Za-z0-9.-]+.[A-Za-z]{2,4}$')),
+    
     phone VARCHAR(20) NOT NULL,
     PRIMARY KEY (personal_identification_number)
 );
 
-ALTER TABLE Customer ADD CONSTRAINT PIN_check_regex
-CHECK (regexp_like(personal_identification_number, '^[0-9]{6}/[0-9]{4}$') );
-
-
 CREATE TABLE Worker (
-    worker_id INT GENERATED AS IDENTITY,
+    id INT GENERATED AS IDENTITY,
     name VARCHAR(100) NOT NULL,
-    email VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL 
+    CONSTRAINT email_check_regex
+    CHECK (regexp_like(email, '^[A-Za-z]+[A-Za-z0-9.]+@[A-Za-z0-9.-]+.[A-Za-z]{2,4}$')),
     phone VARCHAR(20) NOT NULL,
     position VARCHAR(100) NOT NULL,
-    PRIMARY KEY (worker_id)
+    PRIMARY KEY (id)
 );
 
+
 CREATE TABLE Reservation (
-    reservation_id INT GENERATED AS IDENTITY ,
-    reservation_type VARCHAR(20) NOT NULL,
+    id INT GENERATED AS IDENTITY ,
+    type VARCHAR(20) NOT NULL,
     room_id INT,
     event_id INT,
     personal_identification_number VARCHAR (11) NOT NULL,
@@ -41,8 +47,8 @@ CREATE TABLE Reservation (
     end_date DATE NOT NULL,
     total_price DECIMAL(10, 2) NOT NULL,
     payment_status VARCHAR(20) NOT NULL,
-    PRIMARY KEY (reservation_id),
-    CONSTRAINT worker_id FOREIGN KEY (worker_id) REFERENCES Worker(worker_id),
+    PRIMARY KEY (id),
+    FOREIGN KEY (worker_id) REFERENCES Worker(id),
     FOREIGN KEY (personal_identification_number) REFERENCES Customer(personal_identification_number)
 );
 
@@ -52,8 +58,8 @@ CREATE TABLE Event (
     start_date DATE ,
     end_date DATE ,
     reservation_id INT NOT NULL,
-    FOREIGN KEY (reservation_id) REFERENCES Reservation(reservation_id),
     PRIMARY KEY (event_id)
+    FOREIGN KEY (reservation_id) REFERENCES Reservation(id),
 );
 
 CREATE TABLE Service (
@@ -61,14 +67,14 @@ CREATE TABLE Service (
     name VARCHAR(100) NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
     reservation_id INT NOT NULL,
-    FOREIGN KEY (reservation_id) REFERENCES Reservation(reservation_id),
     PRIMARY KEY (service_id)
+    FOREIGN KEY (reservation_id) REFERENCES Reservation(id),
 );
 
 CREATE TABLE Room_event (
     room_id INT NOT NULL ,
     description VARCHAR(500) NOT NULL,
-    price DECIMAL(10, 2) NOT NULL   ,
+    price DECIMAL(10, 2) NOT NULL,
     type VARCHAR(20) NOT NULL,          
     max_capacity INT CONSTRAINT max CHECK( max_capacity > 0 ),
     area INT CONSTRAINT area CHECK( area > 0 ),
@@ -94,14 +100,14 @@ CREATE TABLE Room_accommodation (
 CREATE TABLE Reserved_rooms_acc (
     reservation_id INT NOT NULL,
     room_id INT NOT NULL ,
-    FOREIGN KEY (reservation_id) REFERENCES Reservation(reservation_id),
+    FOREIGN KEY (reservation_id) REFERENCES Reservation(id),
     FOREIGN KEY (room_id) REFERENCES Room_accommodation(room_id)
 );
 
 CREATE TABLE Reserved_rooms_event (
     reservation_id INT NOT NULL,
     room_id INT NOT NULL ,
-    FOREIGN KEY (reservation_id) REFERENCES Reservation(reservation_id),
+    FOREIGN KEY (reservation_id) REFERENCES Reservation(id),
     FOREIGN KEY (room_id) REFERENCES Room_event(room_id)
 );
 
@@ -129,10 +135,11 @@ VALUES
 ('Sarah', 'sarahjones@gmail.com', '9876543210', 'Receptionist');
 
 -- Insert test values into Reservation table
-INSERT INTO Reservation (reservation_type, room_id, event_id, personal_identification_number, worker_id, start_date, end_date, total_price, payment_status)
+INSERT INTO Reservation (type, room_id, event_id, personal_identification_number, worker_id, start_date, end_date, total_price, payment_status)
 VALUES
 ('Accommodation', 1, NULL, '123456/1234', 1, DATE '2023-04-01', DATE'2023-04-05', 500.00, 'Paid');
-INSERT INTO Reservation (reservation_type, room_id, event_id, personal_identification_number, worker_id, start_date, end_date, total_price, payment_status)
+
+INSERT INTO Reservation (type, room_id, event_id, personal_identification_number, worker_id, start_date, end_date, total_price, payment_status)
 VALUES
 ('Event', NULL, 1, '111111/1111', 2, DATE'2023-05-01', DATE'2023-05-02', 100.00, 'Unpaid');
 
@@ -145,6 +152,7 @@ VALUES
 INSERT INTO Service (name, price, reservation_id)
 VALUES
 ('Room service', 20.00, 1);
+
 INSERT INTO Service (name, price, reservation_id)
 VALUES
 ('Extra towels', 10.00, 1);
@@ -153,6 +161,7 @@ VALUES
 INSERT INTO Room_event (room_id, description, price, type, max_capacity, area, personal_identification_number, event_id)
 VALUES
 (1, 'Large meeting room', 200.00, 'Conference', 50, 100, '111111/1111', 1);
+
 INSERT INTO Room_event (room_id, description, price, type, max_capacity, area, personal_identification_number, event_id)
 VALUES
 (2, 'Small meeting room', 100.00, 'Meeting', 10, 50, '111111/1111', 1);
@@ -161,6 +170,7 @@ VALUES
 INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_identification_number)
 VALUES
 (1, 'Luxury suite', 200.00, 1, 1, 'Terrace Suite', '123456/1234');
+
 INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_identification_number)
 VALUES
 (2, 'Standard room', 100.00, 2, 0, 'Junior Suite', '123456/1234');
@@ -169,6 +179,7 @@ VALUES
 INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
 VALUES
 (1, 1);
+
 INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
 VALUES
 (1, 2);
@@ -177,3 +188,5 @@ VALUES
 INSERT INTO Reserved_rooms_event (reservation_id, room_id)
 VALUES
 (2, 1);
+
+-- commit;
