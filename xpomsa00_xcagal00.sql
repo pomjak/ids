@@ -20,11 +20,9 @@ CREATE TABLE Customer (
 ALTER TABLE Customer ADD CONSTRAINT PIN_check_regex
 CHECK (regexp_like(personal_identification_number, '^[0-9]{6}/[0-9]{4}$') );
 
--- ALTER TABLE Customer ADD CONSTRAINT PIN_check_11
--- CHECK(mod(personal_identification_number,11) = 0);
 
 CREATE TABLE Worker (
-    worker_id INT NOT NULL ,
+    worker_id INT GENERATED AS IDENTITY,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL,
     phone VARCHAR(20) NOT NULL,
@@ -33,7 +31,7 @@ CREATE TABLE Worker (
 );
 
 CREATE TABLE Reservation (
-    reservation_id INT NOT NULL ,
+    reservation_id INT GENERATED AS IDENTITY ,
     reservation_type VARCHAR(20) NOT NULL,
     room_id INT,
     event_id INT,
@@ -49,20 +47,20 @@ CREATE TABLE Reservation (
 );
 
 CREATE TABLE Event (
-    event_id INT NOT NULL,
+    event_id INT GENERATED AS IDENTITY,
     type VARCHAR(100) NOT NULL,
     start_date DATE ,
     end_date DATE ,
-    reservation_id INT ,
+    reservation_id INT NOT NULL,
     FOREIGN KEY (reservation_id) REFERENCES Reservation(reservation_id),
     PRIMARY KEY (event_id)
 );
 
 CREATE TABLE Service (
-    service_id INT NOT NULL ,
+    service_id INT GENERATED AS IDENTITY ,
     name VARCHAR(100) NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
-    reservation_id INT ,
+    reservation_id INT NOT NULL,
     FOREIGN KEY (reservation_id) REFERENCES Reservation(reservation_id),
     PRIMARY KEY (service_id)
 );
@@ -72,10 +70,10 @@ CREATE TABLE Room_event (
     description VARCHAR(500) NOT NULL,
     price DECIMAL(10, 2) NOT NULL   ,
     type VARCHAR(20) NOT NULL,          
-    max_capacity INT ,
-    area INT ,
-    personal_identification_number VARCHAR (11),
-    event_id INT,
+    max_capacity INT CONSTRAINT max CHECK( max_capacity > 0 ),
+    area INT CONSTRAINT area CHECK( area > 0 ),
+    personal_identification_number VARCHAR (11) NOT NULL,
+    event_id INT NOT NULL,
     PRIMARY KEY (room_id),
     FOREIGN KEY (personal_identification_number) REFERENCES Customer(personal_identification_number),
     FOREIGN KEY (event_id) REFERENCES Event(event_id)
@@ -83,12 +81,12 @@ CREATE TABLE Room_event (
 
 CREATE TABLE Room_accommodation (
     room_id INT NOT NULL,
-    description VARCHAR(500) NOT NULL,
+    description VARCHAR(500),
     price DECIMAL(10, 2) NOT NULL   ,
     single_beds INT ,
     double_beds INT ,
-    class_luxury VARCHAR(20) NOT NULL,
-    personal_identification_number VARCHAR (11),
+    class_luxury VARCHAR(20) CONSTRAINT luxury_check CHECK( class_luxury IN ('Junior Suite','Deluxe Suite', 'Executive Suite', 'Terrace Suite') ),
+    personal_identification_number VARCHAR (11) NOT NULL,
     PRIMARY KEY (room_id),
     FOREIGN KEY (personal_identification_number) REFERENCES Customer(personal_identification_number)
 );
@@ -112,49 +110,67 @@ CREATE TABLE Reserved_rooms_event (
 -- Insert test values into Customer table
 INSERT INTO Customer (personal_identification_number, first_name, surname, email, phone)
 VALUES
-('123456/1234', 'John', 'Doe', 'johndoe@gmail.com', '1234567890'),
-('111111/1111', 'Jane', 'Doe', 'janedoe@gmail.com', '9876543210'),
+('123456/1234', 'John', 'Doe', 'johndoe@gmail.com', '1234567890');
+
+INSERT INTO Customer (personal_identification_number, first_name, surname, email, phone)
+VALUES
+('111111/1111', 'Jane', 'Doe', 'janedoe@gmail.com', '9876543210');
+
+INSERT INTO Customer (personal_identification_number, first_name, surname, email, phone)
+VALUES
 ('222222/2222', 'Alice', 'Smith', 'alicesmith@gmail.com', '5555555555');
 
 -- Insert test values into Worker table
-INSERT INTO Worker (worker_id, name, email, phone, position)
+INSERT INTO Worker ( name, email, phone, position)
 VALUES
-(1, 'Bob', 'bobsmith@gmail.com', '1234567890', 'Manager'),
-(2, 'Sarah', 'sarahjones@gmail.com', '9876543210', 'Receptionist');
+('Bob', 'bobsmith@gmail.com', '1234567890', 'Manager');
+INSERT INTO Worker (name, email, phone, position)
+VALUES
+('Sarah', 'sarahjones@gmail.com', '9876543210', 'Receptionist');
 
 -- Insert test values into Reservation table
-INSERT INTO Reservation (reservation_id, reservation_type, room_id, event_id, personal_identification_number, worker_id, start_date, end_date, total_price, payment_status)
+INSERT INTO Reservation (reservation_type, room_id, event_id, personal_identification_number, worker_id, start_date, end_date, total_price, payment_status)
 VALUES
-(1, 'Accommodation', 1, NULL, '123456/1234', 1, '2023-04-01', '2023-04-05', 500.00, 'Paid'),
-(2, 'Event', NULL, 1, '111111/1111', 2, '2023-05-01', '2023-05-02', 100.00, 'Unpaid');
+('Accommodation', 1, NULL, '123456/1234', 1, DATE '2023-04-01', DATE'2023-04-05', 500.00, 'Paid');
+INSERT INTO Reservation (reservation_type, room_id, event_id, personal_identification_number, worker_id, start_date, end_date, total_price, payment_status)
+VALUES
+('Event', NULL, 1, '111111/1111', 2, DATE'2023-05-01', DATE'2023-05-02', 100.00, 'Unpaid');
 
 -- Insert test values into Event table
-INSERT INTO Event (event_id, type, start_date, end_date, reservation_id)
+INSERT INTO Event (type, start_date, end_date, reservation_id)
 VALUES
-(1, 'Conference', '2023-05-01', '2023-05-02', 2);
+('Conference', DATE'2023-05-01', DATE'2023-05-02', 2);
 
 -- Insert test values into Service table
-INSERT INTO Service (service_id, name, price, reservation_id)
+INSERT INTO Service (name, price, reservation_id)
 VALUES
-(1, 'Room service', 20.00, 1),
-(2, 'Extra towels', 10.00, 1);
+('Room service', 20.00, 1);
+INSERT INTO Service (name, price, reservation_id)
+VALUES
+('Extra towels', 10.00, 1);
 
 -- Insert test values into Room_event table
 INSERT INTO Room_event (room_id, description, price, type, max_capacity, area, personal_identification_number, event_id)
 VALUES
-(1, 'Large meeting room', 200.00, 'Conference', 50, 100, NULL, 1),
-(2, 'Small meeting room', 100.00, 'Meeting', 10, 50, NULL, NULL);
+(1, 'Large meeting room', 200.00, 'Conference', 50, 100, '111111/1111', 1);
+INSERT INTO Room_event (room_id, description, price, type, max_capacity, area, personal_identification_number, event_id)
+VALUES
+(2, 'Small meeting room', 100.00, 'Meeting', 10, 50, '111111/1111', 1);
 
 -- Insert test values into Room_accommodation table
 INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_identification_number)
 VALUES
-(1, 'Luxury suite', 200.00, 1, 1, 'Luxury', '123456/1234'),
-(2, 'Standard room', 100.00, 2, 0, 'Economy', NULL);
+(1, 'Luxury suite', 200.00, 1, 1, 'Terrace Suite', '123456/1234');
+INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_identification_number)
+VALUES
+(2, 'Standard room', 100.00, 2, 0, 'Junior Suite', '123456/1234');
 
 -- Insert test values into Reserved_rooms_acc table
 INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
 VALUES
-(1, 1),
+(1, 1);
+INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
+VALUES
 (1, 2);
 
 -- Insert test values into Reserved_rooms_event table
