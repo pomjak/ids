@@ -106,3 +106,58 @@ CREATE TABLE Reserved_rooms_event (
     FOREIGN KEY (reservation_id) REFERENCES Reservation(reservation_id),
     FOREIGN KEY (room_id) REFERENCES Room_event(room_id)
 );
+
+
+
+-- Insert test values into Customer table
+INSERT INTO Customer (personal_identification_number, first_name, surname, email, phone)
+VALUES
+('123456/1234', 'John', 'Doe', 'johndoe@gmail.com', '1234567890'),
+('111111/1111', 'Jane', 'Doe', 'janedoe@gmail.com', '9876543210'),
+('222222/2222', 'Alice', 'Smith', 'alicesmith@gmail.com', '5555555555');
+
+-- Insert test values into Worker table
+INSERT INTO Worker (worker_id, name, email, phone, position)
+VALUES
+(1, 'Bob', 'bobsmith@gmail.com', '1234567890', 'Manager'),
+(2, 'Sarah', 'sarahjones@gmail.com', '9876543210', 'Receptionist');
+
+-- Insert test values into Reservation table
+INSERT INTO Reservation (reservation_id, reservation_type, room_id, event_id, personal_identification_number, worker_id, start_date, end_date, total_price, payment_status)
+VALUES
+(1, 'Accommodation', 1, NULL, '123456/1234', 1, '2023-04-01', '2023-04-05', 500.00, 'Paid'),
+(2, 'Event', NULL, 1, '111111/1111', 2, '2023-05-01', '2023-05-02', 100.00, 'Unpaid');
+
+-- Insert test values into Event table
+INSERT INTO Event (event_id, type, start_date, end_date, reservation_id)
+VALUES
+(1, 'Conference', '2023-05-01', '2023-05-02', 2);
+
+-- Insert test values into Service table
+INSERT INTO Service (service_id, name, price, reservation_id)
+VALUES
+(1, 'Room service', 20.00, 1),
+(2, 'Extra towels', 10.00, 1);
+
+-- Insert test values into Room_event table
+INSERT INTO Room_event (room_id, description, price, type, max_capacity, area, personal_identification_number, event_id)
+VALUES
+(1, 'Large meeting room', 200.00, 'Conference', 50, 100, NULL, 1),
+(2, 'Small meeting room', 100.00, 'Meeting', 10, 50, NULL, NULL);
+
+-- Insert test values into Room_accommodation table
+INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_identification_number)
+VALUES
+(1, 'Luxury suite', 200.00, 1, 1, 'Luxury', '123456/1234'),
+(2, 'Standard room', 100.00, 2, 0, 'Economy', NULL);
+
+-- Insert test values into Reserved_rooms_acc table
+INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
+VALUES
+(1, 1),
+(1, 2);
+
+-- Insert test values into Reserved_rooms_event table
+INSERT INTO Reserved_rooms_event (reservation_id, room_id)
+VALUES
+(2, 1);
