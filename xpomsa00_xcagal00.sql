@@ -1,13 +1,19 @@
-DROP TABLE Customer CASCADE CONSTRAINTS;
-DROP TABLE Worker CASCADE CONSTRAINTS;
-DROP TABLE Reservation CASCADE CONSTRAINTS;
-DROP TABLE Event CASCADE CONSTRAINTS;
-DROP TABLE Service CASCADE CONSTRAINTS;
-DROP TABLE Room_event CASCADE CONSTRAINTS;
-DROP TABLE Room_accommodation CASCADE CONSTRAINTS;
-DROP TABLE Reserved_rooms_acc CASCADE CONSTRAINTS;
-DROP TABLE Reserved_rooms_event CASCADE CONSTRAINTS;
-
+BEGIN
+    EXECUTE IMMEDIATE 'DROP TABLE Customer CASCADE CONSTRAINTS';
+    EXECUTE IMMEDIATE 'DROP TABLE Worker CASCADE CONSTRAINTS';
+    EXECUTE IMMEDIATE 'DROP TABLE Reservation CASCADE CONSTRAINTS';
+    EXECUTE IMMEDIATE 'DROP TABLE Event CASCADE CONSTRAINTS';
+    EXECUTE IMMEDIATE 'DROP TABLE Service CASCADE CONSTRAINTS';
+    EXECUTE IMMEDIATE 'DROP TABLE Room_event CASCADE CONSTRAINTS';
+    EXECUTE IMMEDIATE 'DROP TABLE Room_accommodation CASCADE CONSTRAINTS';
+    EXECUTE IMMEDIATE 'DROP TABLE Reserved_rooms_acc CASCADE CONSTRAINTS';
+    EXECUTE IMMEDIATE 'DROP TABLE Reserved_rooms_event CASCADE CONSTRAINTS';
+EXCEPTION
+    WHEN OTHERS THEN
+        IF SQLCODE != -942 THEN
+            RAISE;
+        END IF;
+END;
 
 CREATE TABLE Customer (
     personal_identification_number VARCHAR(11) NOT NULL 
@@ -58,8 +64,8 @@ CREATE TABLE Event (
     start_date DATE ,
     end_date DATE ,
     reservation_id INT NOT NULL,
-    PRIMARY KEY (event_id)
-    FOREIGN KEY (reservation_id) REFERENCES Reservation(id),
+    PRIMARY KEY (event_id),
+    FOREIGN KEY (reservation_id) REFERENCES Reservation(id)
 );
 
 CREATE TABLE Service (
@@ -67,8 +73,8 @@ CREATE TABLE Service (
     name VARCHAR(100) NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
     reservation_id INT NOT NULL,
-    PRIMARY KEY (service_id)
-    FOREIGN KEY (reservation_id) REFERENCES Reservation(id),
+    PRIMARY KEY (service_id),
+    FOREIGN KEY (reservation_id) REFERENCES Reservation(id)
 );
 
 CREATE TABLE Room_event (
@@ -189,4 +195,4 @@ INSERT INTO Reserved_rooms_event (reservation_id, room_id)
 VALUES
 (2, 1);
 
--- commit;
+COMMIT;
