@@ -1,28 +1,19 @@
--- BEGIN
---     EXECUTE IMMEDIATE 'DROP TABLE Customer CASCADE CONSTRAINTS';
---     EXECUTE IMMEDIATE 'DROP TABLE Worker CASCADE CONSTRAINTS';
---     EXECUTE IMMEDIATE 'DROP TABLE Reservation CASCADE CONSTRAINTS';
---     EXECUTE IMMEDIATE 'DROP TABLE Event CASCADE CONSTRAINTS';
---     EXECUTE IMMEDIATE 'DROP TABLE Service CASCADE CONSTRAINTS';
---     EXECUTE IMMEDIATE 'DROP TABLE Room_event CASCADE CONSTRAINTS';
---     EXECUTE IMMEDIATE 'DROP TABLE Room_accommodation CASCADE CONSTRAINTS';
---     EXECUTE IMMEDIATE 'DROP TABLE Reserved_rooms_acc CASCADE CONSTRAINTS';
---     EXECUTE IMMEDIATE 'DROP TABLE Reserved_rooms_event CASCADE CONSTRAINTS';
--- EXCEPTION
---     WHEN OTHERS THEN
---         IF SQLCODE != -942 THEN
---             RAISE;
---         END IF;
--- END;
-DROP TABLE Customer CASCADE CONSTRAINTS;
-DROP TABLE Worker CASCADE CONSTRAINTS;
-DROP TABLE Reservation CASCADE CONSTRAINTS;
-DROP TABLE Event CASCADE CONSTRAINTS;
-DROP TABLE Service CASCADE CONSTRAINTS;
-DROP TABLE Room_event CASCADE CONSTRAINTS;
-DROP TABLE Room_accommodation CASCADE CONSTRAINTS;
-DROP TABLE Reserved_rooms_acc CASCADE CONSTRAINTS;
-DROP TABLE Reserved_rooms_event CASCADE CONSTRAINTS;
+BEGIN
+    EXECUTE IMMEDIATE 'DROP TABLE Customer CASCADE CONSTRAINTS';
+    EXECUTE IMMEDIATE 'DROP TABLE Worker CASCADE CONSTRAINTS';
+    EXECUTE IMMEDIATE 'DROP TABLE Reservation CASCADE CONSTRAINTS';
+    EXECUTE IMMEDIATE 'DROP TABLE Event CASCADE CONSTRAINTS';
+    EXECUTE IMMEDIATE 'DROP TABLE Service CASCADE CONSTRAINTS';
+    EXECUTE IMMEDIATE 'DROP TABLE Room_event CASCADE CONSTRAINTS';
+    EXECUTE IMMEDIATE 'DROP TABLE Room_accommodation CASCADE CONSTRAINTS';
+    EXECUTE IMMEDIATE 'DROP TABLE Reserved_rooms_acc CASCADE CONSTRAINTS';
+    EXECUTE IMMEDIATE 'DROP TABLE Reserved_rooms_event CASCADE CONSTRAINTS';
+EXCEPTION
+    WHEN OTHERS THEN
+        IF SQLCODE != -942 THEN
+            RAISE;
+        END IF;
+END;
 
 CREATE TABLE Customer (
     personal_id VARCHAR(10) NOT NULL
@@ -167,7 +158,7 @@ VALUES
 INSERT INTO Service (name, price, reservation_id)
 VALUES
 ('Room service', 20.00, 2);
-select ID FROM RESERVATION;
+
 INSERT INTO Service (name, price, reservation_id)
 VALUES
 ('Extra towels', 10.00, 1);
@@ -184,11 +175,11 @@ VALUES
 -- Insert test values into Room_accommodation table
 INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_id)
 VALUES
-(1, 'Luxury suite', 200.00, 1, 1, 'Terrace Suite', '1234561234');
+(1, 'Luxury suite', 200.00, 1, 1, 'Terrace Suite', '3333333333');
 
 INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_id)
 VALUES
-(2, 'Standard room', 100.00, 2, 0, 'Junior Suite', '1234561234');
+(2, 'Standard room', 100.00, 2, 0, 'Junior Suite', '3333333333');
 
 -- Insert test values into Reserved_rooms_acc table
 INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
