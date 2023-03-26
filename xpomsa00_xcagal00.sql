@@ -78,6 +78,9 @@ CREATE TABLE Service (
     FOREIGN KEY (reservation_id) REFERENCES Reservation(id)
 );
 
+
+-- Our ER diagram had Room for event and Room for accommodation generalized into one 'Room' entity, since they shared similar attributes, however in our implementation it made more sense 
+-- to represent the generalization with distinct tables for each of them, as they are in relations with different entities
 CREATE TABLE Room_event (
     room_id INT NOT NULL ,
     description VARCHAR(500) NOT NULL,
