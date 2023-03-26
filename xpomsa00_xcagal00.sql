@@ -117,7 +117,8 @@ CREATE TABLE Room_accommodation (
 CREATE TABLE Reserved_rooms_acc (
     reservation_id  INT NOT NULL,
     room_id         INT NOT NULL,
-
+    
+    PRIMARY KEY (room_id,reservation_id),
     FOREIGN KEY (reservation_id) REFERENCES Reservation(id),
     FOREIGN KEY (room_id) REFERENCES Room_accommodation(room_id)
 );
@@ -126,6 +127,7 @@ CREATE TABLE Reserved_rooms_event (
     reservation_id  INT NOT NULL,
     room_id         INT NOT NULL,
 
+    PRIMARY KEY (room_id,reservation_id),
     FOREIGN KEY (reservation_id) REFERENCES Reservation(id),
     FOREIGN KEY (room_id) REFERENCES Room_event(room_id)
 );
