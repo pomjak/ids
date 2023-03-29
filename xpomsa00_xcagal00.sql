@@ -33,7 +33,8 @@ CREATE TABLE Customer (
 
 CREATE TABLE Worker (
     id          INT GENERATED AS IDENTITY,
-    name        VARCHAR(100)    NOT NULL,
+    first_name  VARCHAR(100)    NOT NULL,
+    surname     VARCHAR(100)    NOT NULL,
     email       VARCHAR(100)    NOT NULL 
                 CONSTRAINT email_check_regex
                 CHECK (regexp_like(email, '^[A-Za-z]+[A-Za-z0-9.]+@[A-Za-z0-9.-]+.[A-Za-z]{2,4}$')),
@@ -146,12 +147,12 @@ VALUES
 ('2222222222', 'Alice', 'Smith', 'alicesmith@gmail.com', '5555555555');
 
 -- Insert test values into Worker table
-INSERT INTO Worker ( name, email, phone, position)
+INSERT INTO Worker ( first_name,surname, email, phone, position)
 VALUES
-('Bob', 'bobsmith@gmail.com', '1234567890', 'Manager');
-INSERT INTO Worker (name, email, phone, position)
+('Bob', 'Bobovich','bobb@gmail.com', '1234567890', 'Manager');
+INSERT INTO Worker (first_name,surname, email, phone, position)
 VALUES
-('Sarah', 'sarahjones@gmail.com', '9876543210', 'Receptionist');
+('Sarah','Connor', 'sarahconnor@gmail.com', '9876543210', 'Receptionist');
 
 -- Insert test values into Reservation table
 INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_date, end_date, total_price, payment_status)
@@ -189,7 +190,7 @@ VALUES
 -- Insert test values into Room_accommodation table
 INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_id)
 VALUES
-(1, 'Luxury suite', 200.00, 1, 1, 'Terrace Suite', '3333333333');
+(1, 'Luxury suite', 200.00, 1, 1, 'Terrace Suite', '2222222222');
 
 INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_id)
 VALUES
@@ -208,5 +209,18 @@ VALUES
 INSERT INTO Reserved_rooms_event (reservation_id, room_id)
 VALUES
 (2, 1);
+
+-- SELECT
+-- Konkrétně musí tento skript obsahovat alespoň dva dotazy využívající spojení dvou tabulek, jeden využívající spojení tří tabulek, dva dotazy s klauzulí GROUP BY a agregační funkcí, jeden dotaz obsahující predikát EXISTS a jeden dotaz s predikátem IN s vnořeným selectem (nikoliv IN s množinou konstantních dat), tj. celkem minimálně 7 dotazů. U každého z dotazů musí být (v komentáři SQL kódu) popsáno srozumitelně, jaká data hledá daný dotaz (jaká je jeho funkce v aplikaci).
+
+--select display shows all customers and where they are currently accommodated
+SELECT Customer.first_name, Customer.surname, Room_accommodation.room_id
+FROM Room_accommodation
+INNER JOIN Customer ON Room_accommodation.personal_id=Customer.personal_id;
+
+--select display shows all workers and which reservations they are currently managing
+SELECT Worker.id AS "WORKER ID", Worker.first_name, Worker.surname, Worker.position, Reservation.id AS "RESERVATION ID"
+FROM Reservation
+INNER JOIN Worker ON Reservation.worker_id = Worker.id;
 
 COMMIT;
