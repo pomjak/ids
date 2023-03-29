@@ -223,4 +223,10 @@ SELECT Worker.id AS "WORKER ID", Worker.first_name, Worker.surname, Worker.posit
 FROM Reservation
 INNER JOIN Worker ON Reservation.worker_id = Worker.id;
 
+-- the select command will display event reservations and where each event will take place
+SELECT Reservation.id AS "RESERVATION ID", Reservation.start_date, Reservation.end_date, Event.event_id AS "EVENT ID", Room_event.room_id AS "ROOM ID", Room_event.description
+FROM Reservation
+INNER JOIN Event ON Reservation.event_id = Event.event_id
+INNER JOIN Room_event ON Event.event_id = Room_event.event_id;
+
 COMMIT;
