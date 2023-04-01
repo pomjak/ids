@@ -256,4 +256,12 @@ AND NOT EXISTS( SELECT *
                 NATURAL JOIN Room_accommodation
                 WHERE class_luxury <> 'Luxury suite');
 
+SELECT Customer.surname FROM Customer
+    INNER JOIN Room_accommodation ON Customer.personal_id = Room_accommodation.personal_id
+    WHERE Room_accommodation.personal_id is not NULL
+    AND Customer.surname IN
+            (SELECT Customer.surname FROM Customer
+            NATURAL JOIN Reservation
+            WHERE end_date < CURRENT_DATE);
+
 COMMIT;
