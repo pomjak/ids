@@ -196,6 +196,10 @@ INSERT INTO Room_accommodation (room_id, description, price, single_beds, double
 VALUES
 (2, 'Standard room', 100.00, 2, 0, 'Junior Suite', '3333333333');
 
+INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_id)
+VALUES
+(3, 'Luxury suite 2', 200.00, 1, 1, 'Terrace Suite',NULL);
+
 -- Insert test values into Reserved_rooms_acc table
 INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
 VALUES
@@ -221,17 +225,35 @@ NATURAL JOIN Customer;
 --select display shows all workers and which reservations they are currently managing
 SELECT Worker.id AS "WORKER ID", Worker.first_name, Worker.surname, Worker.position, Reservation.id AS "RESERVATION ID"
 FROM Reservation
-NATURAL JOIN Worker;
+INNER JOIN Worker ON Reservation.worker_id = Worker.id;
 
 -- the select command will display event reservations and where each event will take place
 SELECT Reservation.id AS "RESERVATION ID", Reservation.start_date, Reservation.end_date, Event.event_id AS "EVENT ID", Room_event.room_id AS "ROOM ID", Room_event.description
 FROM Reservation
-NATURAL JOIN Event
-NATURAL JOIN Room_event;
+INNER JOIN Event ON Reservation.id = Event.reservation_id
+INNER JOIN Room_event ON Event.event_id = Room_event.event_id;
 
--- vypsat vsechny roomky ktere nejsou obsazeny a nejsou rezervovany an nasledujici tyden
-SELECT * FROM Room_accommodation
+-- select display all empty rooms grouped by class of luxury
+SELECT class_luxury,COUNT(*) FROM Room_accommodation
+WHERE Room_accommodation.personal_id is NULL
+GROUP BY (class_luxury);
+
+-- select display all empty rooms grouped by class of luxury
+SELECT TO_CHAR(start_date,'MM') AS month, COUNT(*) as number_of_reservations
+FROM Reservation
+GROUP BY(TO_CHAR(start_date,'MM'));
+
+-- select display all customers that  rooms grouped by class of luxury
+SELECT DISTINCT personal_id FROM Customer
 NATURAL JOIN Reserved_rooms_acc
-WHERE Room_accommodation.personal_id is NULL AND Reserved_rooms_acc.
+NATURAL JOIN Reservation
+NATURAL JOIN Room_accommodation
+WHERE class_luxury = 'Luxury suite'
+AND NOT EXISTS( SELECT *
+                FROM Customer
+                NATURAL JOIN Reserved_rooms_acc
+                NATURAL JOIN Reservation
+                NATURAL JOIN Room_accommodation
+                WHERE class_luxury <> 'Luxury suite');
 
 COMMIT;
