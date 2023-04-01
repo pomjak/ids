@@ -176,10 +176,18 @@ INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_
 VALUES
 ('Event', NULL, 1, '1111111111', 2, DATE'2023-05-01', DATE'2023-05-02', 100.00, 'Unpaid');
 
+INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_date, end_date, total_price, payment_status)
+VALUES
+('Event', NULL, 2, '4444444444', 2, DATE'2023-03-15', DATE'2023-03-16', 150.00, 'Paid');
+
 -- Insert test values into Event table
 INSERT INTO Event (type, start_date, end_date, reservation_id)
 VALUES
 ('Conference', DATE'2023-05-01', DATE'2023-05-02', 2);
+
+INSERT INTO Event (type, start_date, end_date, reservation_id)
+VALUES
+('Wedding', DATE'2023-03-15', DATE'2023-03-16', 2);
 
 
 -- Insert test values into Service table
@@ -198,7 +206,8 @@ VALUES
 
 INSERT INTO Room_event (room_id, description, price, type, max_capacity, area, personal_id, event_id)
 VALUES
-(98, 'Small meeting room', 100.00, 'Meeting', 10, 50, '1111111111', 1);
+(98, 'Small meeting room', 100.00, 'Meeting', 10, 50, '2222222222', 2);
+
 
 -- Insert test values into Room_accommodation table
 INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_id)
@@ -229,24 +238,26 @@ VALUES
 -- Insert test values into Reserved_rooms_acc table
 INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
 VALUES
-(2, 1);
+(1, 1);
 
 INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
 VALUES
-(3, 3);
+(2, 4);
 
 INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
 VALUES
-(4, 4);
+(3, 2);
 
-INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
-VALUES
-(1, 2);
+
 
 -- Insert test values into Reserved_rooms_event table
 INSERT INTO Reserved_rooms_event (reservation_id, room_id)
 VALUES
-(2, 99);
+(4, 99);
+
+INSERT INTO Reserved_rooms_event (reservation_id, room_id)
+VALUES
+(5, 98);
 
 -- SELECT
 -- Konkrétně musí tento skript obsahovat alespoň dva dotazy využívající spojení dvou tabulek, jeden využívající spojení tří tabulek, dva dotazy s klauzulí GROUP BY a agregační funkcí, jeden dotaz obsahující predikát EXISTS a jeden dotaz s predikátem IN s vnořeným selectem (nikoliv IN s množinou konstantních dat), tj. celkem minimálně 7 dotazů. U každého z dotazů musí být (v komentáři SQL kódu) popsáno srozumitelně, jaká data hledá daný dotaz (jaká je jeho funkce v aplikaci).
@@ -275,7 +286,8 @@ GROUP BY (class_luxury);
 -- List the number of reservations for each month
 SELECT TO_CHAR(start_date,'MM') AS month, COUNT(*) as number_of_reservations
 FROM Reservation
-GROUP BY(TO_CHAR(start_date,'MM'));
+GROUP BY(TO_CHAR(start_date,'MM'))
+ORDER BY(TO_CHAR(start_date, 'MM')) ASC;
 
 -- List customers which have only stayed in the executive suite
 SELECT DISTINCT personal_id ,first_name, surname FROM Customer
