@@ -229,6 +229,9 @@ FROM Reservation
 NATURAL JOIN Event
 NATURAL JOIN Room_event;
 
-
+-- vypsat vsechny roomky ktere nejsou obsazeny a nejsou rezervovany an nasledujici tyden
+SELECT * FROM Room_accommodation
+NATURAL JOIN Reserved_rooms_acc
+WHERE Room_accommodation.personal_id is NULL AND Reserved_rooms_acc.
 
 COMMIT;
