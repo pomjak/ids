@@ -144,12 +144,17 @@ VALUES
 
 INSERT INTO Customer (personal_id, first_name, surname, email, phone)
 VALUES
-('2222222222', 'Alice', 'Smith', 'alicesmith@gmail.com', '5555555555');
+('2222222222', 'Julius', 'Pepperwood', 'jpep@yahoo.com', '4205097653');
+
+INSERT INTO Customer (personal_id, first_name, surname, email, phone)
+VALUES
+('4444444444', 'Todd', 'Chavez', 'tchavez@protonmail.com', '5054204242');
 
 -- Insert test values into Worker table
 INSERT INTO Worker ( first_name,surname, email, phone, position)
 VALUES
 ('Bob', 'Bobovich','bobb@gmail.com', '1234567890', 'Manager');
+
 INSERT INTO Worker (first_name,surname, email, phone, position)
 VALUES
 ('Sarah','Connor', 'sarahconnor@gmail.com', '9876543210', 'Receptionist');
@@ -157,7 +162,15 @@ VALUES
 -- Insert test values into Reservation table
 INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_date, end_date, total_price, payment_status)
 VALUES
-('Accommodation', 1, NULL, '3333333333', 1, DATE '2023-04-01', DATE'2023-04-05', 500.00, 'Paid');
+('Accommodation', 1, NULL, '3333333333', 1, DATE '2023-04-01', DATE'2023-04-05', 500.00, 'Unpaid');
+
+INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_date, end_date, total_price, payment_status)
+VALUES
+('Accommodation', 2, NULL, '2222222222', 2, DATE '2023-01-10', DATE'2023-01-20', 1000.00, 'Paid');
+
+INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_date, end_date, total_price, payment_status)
+VALUES
+('Accommodation', 3, NULL, '4444444444', 1, DATE '2023-02-13', DATE'2023-03-01', 854.00, 'Paid');
 
 INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_date, end_date, total_price, payment_status)
 VALUES
@@ -181,16 +194,16 @@ VALUES
 -- Insert test values into Room_event table
 INSERT INTO Room_event (room_id, description, price, type, max_capacity, area, personal_id, event_id)
 VALUES
-(1, 'Large meeting room', 200.00, 'Conference', 50, 100, '1111111111', 1);
+(99, 'Large meeting room', 200.00, 'Conference', 50, 100, '1111111111', 1);
 
 INSERT INTO Room_event (room_id, description, price, type, max_capacity, area, personal_id, event_id)
 VALUES
-(2, 'Small meeting room', 100.00, 'Meeting', 10, 50, '1111111111', 1);
+(98, 'Small meeting room', 100.00, 'Meeting', 10, 50, '1111111111', 1);
 
 -- Insert test values into Room_accommodation table
 INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_id)
 VALUES
-(1, 'Luxury suite', 200.00, 1, 1, 'Terrace Suite', '2222222222');
+(1, 'Luxury suite', 200.00, 1, 1, 'Executive Suite', '2222222222');
 
 INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_id)
 VALUES
@@ -198,7 +211,20 @@ VALUES
 
 INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_id)
 VALUES
-(3, 'Luxury suite 2', 200.00, 1, 1, 'Terrace Suite',NULL);
+(3, 'Standard room', 100.00, 2, 0, 'Junior Suite', NULL);
+
+INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_id)
+VALUES
+(4, 'Luxury suite 2', 200.00, 1, 2, 'Terrace Suite','4444444444');
+
+INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_id)
+VALUES
+(5, 'Luxury suite 2', 200.00, 1, 2, 'Terrace Suite',NULL);
+
+INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_id)
+VALUES
+(6, 'Luxury suite 2', 200.00, 2, 2, 'Deluxe Suite',NULL);
+
 
 -- Insert test values into Reserved_rooms_acc table
 INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
@@ -207,12 +233,20 @@ VALUES
 
 INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
 VALUES
+(3, 3);
+
+INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
+VALUES
+(4, 4);
+
+INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
+VALUES
 (1, 2);
 
 -- Insert test values into Reserved_rooms_event table
 INSERT INTO Reserved_rooms_event (reservation_id, room_id)
 VALUES
-(2, 1);
+(2, 99);
 
 -- SELECT
 -- Konkrétně musí tento skript obsahovat alespoň dva dotazy využívající spojení dvou tabulek, jeden využívající spojení tří tabulek, dva dotazy s klauzulí GROUP BY a agregační funkcí, jeden dotaz obsahující predikát EXISTS a jeden dotaz s predikátem IN s vnořeným selectem (nikoliv IN s množinou konstantních dat), tj. celkem minimálně 7 dotazů. U každého z dotazů musí být (v komentáři SQL kódu) popsáno srozumitelně, jaká data hledá daný dotaz (jaká je jeho funkce v aplikaci).
@@ -238,25 +272,26 @@ SELECT class_luxury,COUNT(*) FROM Room_accommodation
 WHERE Room_accommodation.personal_id is NULL
 GROUP BY (class_luxury);
 
--- select display all empty rooms grouped by class of luxury
+-- List the number of reservations for each month
 SELECT TO_CHAR(start_date,'MM') AS month, COUNT(*) as number_of_reservations
 FROM Reservation
 GROUP BY(TO_CHAR(start_date,'MM'));
 
--- select display all customers that  rooms grouped by class of luxury
-SELECT DISTINCT personal_id FROM Customer
+-- List customers which have only stayed in the executive suite
+SELECT DISTINCT personal_id ,first_name, surname FROM Customer
 NATURAL JOIN Reserved_rooms_acc
 NATURAL JOIN Reservation
 NATURAL JOIN Room_accommodation
-WHERE class_luxury = 'Luxury suite'
+WHERE class_luxury = 'Executive Suite'
 AND NOT EXISTS( SELECT *
                 FROM Customer
                 NATURAL JOIN Reserved_rooms_acc
                 NATURAL JOIN Reservation
                 NATURAL JOIN Room_accommodation
-                WHERE class_luxury <> 'Luxury suite');
+                WHERE class_luxury <> 'Executive Suite');
 
-SELECT Customer.surname FROM Customer
+-- List currently accommodated customers that have previously stayed at the hotel 
+SELECT Customer.first_name, Customer.surname FROM Customer
     INNER JOIN Room_accommodation ON Customer.personal_id = Room_accommodation.personal_id
     WHERE Room_accommodation.personal_id is not NULL
     AND Customer.surname IN
