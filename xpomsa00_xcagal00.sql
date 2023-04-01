@@ -110,7 +110,7 @@ CREATE TABLE Room_accommodation (
     single_beds     INT                     ,
     double_beds     INT                     ,
     class_luxury    VARCHAR(20) CONSTRAINT luxury_check CHECK( class_luxury IN ('Junior Suite','Deluxe Suite', 'Executive Suite', 'Terrace Suite') ),
-    personal_id     VARCHAR (11)    NOT NULL,   
+    personal_id     VARCHAR (11)            ,   
     PRIMARY KEY (room_id)                   ,  
     FOREIGN KEY (personal_id) REFERENCES Customer(personal_id)
 );
@@ -216,17 +216,19 @@ VALUES
 --select display shows all customers and where they are currently accommodated
 SELECT Customer.first_name, Customer.surname, Room_accommodation.room_id
 FROM Room_accommodation
-INNER JOIN Customer ON Room_accommodation.personal_id=Customer.personal_id;
+NATURAL JOIN Customer;
 
 --select display shows all workers and which reservations they are currently managing
 SELECT Worker.id AS "WORKER ID", Worker.first_name, Worker.surname, Worker.position, Reservation.id AS "RESERVATION ID"
 FROM Reservation
-INNER JOIN Worker ON Reservation.worker_id = Worker.id;
+NATURAL JOIN Worker;
 
 -- the select command will display event reservations and where each event will take place
 SELECT Reservation.id AS "RESERVATION ID", Reservation.start_date, Reservation.end_date, Event.event_id AS "EVENT ID", Room_event.room_id AS "ROOM ID", Room_event.description
 FROM Reservation
-INNER JOIN Event ON Reservation.event_id = Event.event_id
-INNER JOIN Room_event ON Event.event_id = Room_event.event_id;
+NATURAL JOIN Event
+NATURAL JOIN Room_event;
+
+
 
 COMMIT;
