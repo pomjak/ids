@@ -170,7 +170,7 @@ VALUES
 
 INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_date, end_date, total_price, payment_status)
 VALUES
-('Accommodation', 3, NULL, '4444444444', 1, DATE '2023-02-13', DATE'2023-03-01', 854.00, 'Paid');
+('Accommodation', NULL, NULL, '4444444444', 1, DATE '2023-02-13', DATE'2023-03-01', 854.00, 'Paid');
 
 INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_date, end_date, total_price, payment_status)
 VALUES
@@ -234,6 +234,10 @@ INSERT INTO Room_accommodation (room_id, description, price, single_beds, double
 VALUES
 (6, 'Luxury suite 2', 200.00, 2, 2, 'Deluxe Suite',NULL);
 
+INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_id)
+VALUES
+(7, 'Luxury suite 2', 200.00, 2, 2, 'Deluxe Suite',NULL);
+
 
 -- Insert test values into Reserved_rooms_acc table
 INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
@@ -242,11 +246,8 @@ VALUES
 
 INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
 VALUES
-(2, 4);
+(3, 4);
 
-INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
-VALUES
-(3, 2);
 
 
 
@@ -270,7 +271,8 @@ NATURAL JOIN Customer;
 --select display shows all workers and which reservations they are currently managing
 SELECT Worker.id AS "WORKER ID", Worker.first_name, Worker.surname, Worker.position, Reservation.id AS "RESERVATION ID"
 FROM Reservation
-INNER JOIN Worker ON Reservation.worker_id = Worker.id;
+INNER JOIN Worker ON Reservation.worker_id = Worker.id
+ORDER BY Worker.id;
 
 -- the select command will display event reservations and where each event will take place
 SELECT Reservation.id AS "RESERVATION ID", Reservation.start_date, Reservation.end_date, Event.event_id AS "EVENT ID", Room_event.room_id AS "ROOM ID", Room_event.description
@@ -287,21 +289,22 @@ GROUP BY (class_luxury);
 SELECT TO_CHAR(start_date,'MM') AS month, COUNT(*) as number_of_reservations
 FROM Reservation
 GROUP BY(TO_CHAR(start_date,'MM'))
-ORDER BY(TO_CHAR(start_date, 'MM')) ASC;
+ORDER BY(TO_CHAR(start_date, 'MM'));
 
--- List customers which have only stayed in the executive suite
-SELECT DISTINCT personal_id ,first_name, surname FROM Customer
-NATURAL JOIN Reserved_rooms_acc
-NATURAL JOIN Reservation
-NATURAL JOIN Room_accommodation
-WHERE class_luxury = 'Executive Suite'
-AND NOT EXISTS( SELECT *
+-- List customers which have only stayed in the terrace suite
+SELECT DISTINCT Customer.personal_id,Reservation.personal_id,Reservation.id,Reserved_rooms_acc.reservation_id,Reserved_rooms_acc.room_id,Room_accommodation.room_id
+FROM Customer
+INNER JOIN Reservation on Customer.personal_id = Reservation.personal_id
+INNER JOIN Reserved_rooms_acc ON Reservation.id = Reserved_rooms_acc.reservation_id
+INNER JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
+WHERE class_luxury = 'Terrace Suite'
+AND EXISTS(
+                SELECT *
                 FROM Customer
-                NATURAL JOIN Reserved_rooms_acc
-                NATURAL JOIN Reservation
-                NATURAL JOIN Room_accommodation
-                WHERE class_luxury <> 'Executive Suite');
-
+                INNER JOIN Reservation on Customer.personal_id = Reservation.personal_id
+                INNER JOIN Reserved_rooms_acc ON Reservation.id = Reserved_rooms_acc.reservation_id
+                INNER JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
+                WHERE class_luxury <> 'Terrace Suite');
 -- List currently accommodated customers that have previously stayed at the hotel 
 SELECT Customer.first_name, Customer.surname FROM Customer
     INNER JOIN Room_accommodation ON Customer.personal_id = Room_accommodation.personal_id
