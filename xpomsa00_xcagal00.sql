@@ -183,11 +183,11 @@ VALUES
 -- Insert test values into Event table
 INSERT INTO Event (type, start_date, end_date, reservation_id)
 VALUES
-('Conference', DATE'2023-05-01', DATE'2023-05-02', 2);
+('Conference', DATE'2023-05-01', DATE'2023-05-02', 4);
 
 INSERT INTO Event (type, start_date, end_date, reservation_id)
 VALUES
-('Wedding', DATE'2023-03-15', DATE'2023-03-16', 2);
+('Wedding', DATE'2023-03-15', DATE'2023-03-16', 5);
 
 
 -- Insert test values into Service table
@@ -246,6 +246,10 @@ VALUES
 
 INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
 VALUES
+(2, 2);
+
+INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
+VALUES
 (3, 4);
 
 
@@ -259,9 +263,6 @@ VALUES
 INSERT INTO Reserved_rooms_event (reservation_id, room_id)
 VALUES
 (5, 98);
-
--- SELECT
--- Konkrétně musí tento skript obsahovat alespoň dva dotazy využívající spojení dvou tabulek, jeden využívající spojení tří tabulek, dva dotazy s klauzulí GROUP BY a agregační funkcí, jeden dotaz obsahující predikát EXISTS a jeden dotaz s predikátem IN s vnořeným selectem (nikoliv IN s množinou konstantních dat), tj. celkem minimálně 7 dotazů. U každého z dotazů musí být (v komentáři SQL kódu) popsáno srozumitelně, jaká data hledá daný dotaz (jaká je jeho funkce v aplikaci).
 
 --select display shows all customers and where they are currently accommodated
 SELECT Customer.first_name, Customer.surname, Room_accommodation.room_id
@@ -292,20 +293,21 @@ GROUP BY(TO_CHAR(start_date,'MM'))
 ORDER BY(TO_CHAR(start_date, 'MM'));
 
 -- List customers which have only stayed in the terrace suite
-SELECT DISTINCT Customer.personal_id,Reservation.personal_id,Reservation.id,Reserved_rooms_acc.reservation_id,Reserved_rooms_acc.room_id,Room_accommodation.room_id
+SELECT DISTINCT first_name,surname,Customer.personal_id,class_luxury
 FROM Customer
-INNER JOIN Reservation on Customer.personal_id = Reservation.personal_id
+INNER JOIN Reservation ON Customer.personal_id = Reservation.personal_id
 INNER JOIN Reserved_rooms_acc ON Reservation.id = Reserved_rooms_acc.reservation_id
 INNER JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
 WHERE class_luxury = 'Terrace Suite'
 AND EXISTS(
                 SELECT *
                 FROM Customer
-                INNER JOIN Reservation on Customer.personal_id = Reservation.personal_id
+                INNER JOIN Reservation ON Customer.personal_id = Reservation.personal_id
                 INNER JOIN Reserved_rooms_acc ON Reservation.id = Reserved_rooms_acc.reservation_id
                 INNER JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
                 WHERE class_luxury <> 'Terrace Suite');
--- List currently accommodated customers that have previously stayed at the hotel 
+
+-- List currently accommodated customers that have previously stayed at the hotel
 SELECT Customer.first_name, Customer.surname FROM Customer
     INNER JOIN Room_accommodation ON Customer.personal_id = Room_accommodation.personal_id
     WHERE Room_accommodation.personal_id is not NULL
