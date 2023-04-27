@@ -253,8 +253,6 @@ VALUES
 (3, 4);
 
 
-
-
 -- Insert test values into Reserved_rooms_event table
 INSERT INTO Reserved_rooms_event (reservation_id, room_id)
 VALUES
@@ -264,56 +262,73 @@ INSERT INTO Reserved_rooms_event (reservation_id, room_id)
 VALUES
 (5, 98);
 
---select display shows all customers and where they are currently accommodated
-SELECT Customer.first_name, Customer.surname, Room_accommodation.room_id
-FROM Room_accommodation
-NATURAL JOIN Customer;
+-- --select display shows all customers and where they are currently accommodated
+-- SELECT Customer.first_name, Customer.surname, Room_accommodation.room_id
+-- FROM Room_accommodation
+-- NATURAL JOIN Customer;
+--
+-- --select display shows all workers and which reservations they are currently managing
+-- SELECT Worker.id AS "WORKER ID", Worker.first_name, Worker.surname, Worker.position, Reservation.id AS "RESERVATION ID"
+-- FROM Reservation
+-- INNER JOIN Worker ON Reservation.worker_id = Worker.id
+-- ORDER BY Worker.id;
+--
+-- -- the select command will display event reservations and where each event will take place
+-- SELECT Reservation.id AS "RESERVATION ID", Reservation.start_date, Reservation.end_date, Event.event_id AS "EVENT ID", Room_event.room_id AS "ROOM ID", Room_event.description
+-- FROM Reservation
+-- INNER JOIN Event ON Reservation.id = Event.reservation_id
+-- INNER JOIN Room_event ON Event.event_id = Room_event.event_id;
+--
+-- -- select display all empty rooms grouped by class of luxury
+-- SELECT class_luxury,COUNT(*) FROM Room_accommodation
+-- WHERE Room_accommodation.personal_id is NULL
+-- GROUP BY (class_luxury);
+--
+-- -- List the number of reservations for each month
+-- SELECT TO_CHAR(start_date,'MM') AS month, COUNT(*) as number_of_reservations
+-- FROM Reservation
+-- GROUP BY(TO_CHAR(start_date,'MM'))
+-- ORDER BY(TO_CHAR(start_date, 'MM'));
+--
+-- -- List customers which have only stayed in the terrace suite
+-- SELECT DISTINCT first_name,surname,Customer.personal_id,class_luxury
+-- FROM Customer
+-- INNER JOIN Reservation ON Customer.personal_id = Reservation.personal_id
+-- INNER JOIN Reserved_rooms_acc ON Reservation.id = Reserved_rooms_acc.reservation_id
+-- INNER JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
+-- WHERE class_luxury = 'Terrace Suite'
+-- AND EXISTS(
+--                 SELECT *
+--                 FROM Customer
+--                 INNER JOIN Reservation ON Customer.personal_id = Reservation.personal_id
+--                 INNER JOIN Reserved_rooms_acc ON Reservation.id = Reserved_rooms_acc.reservation_id
+--                 INNER JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
+--                 WHERE class_luxury <> 'Terrace Suite');
+--
+-- -- List currently accommodated customers that have previously stayed at the hotel
+-- SELECT Customer.first_name, Customer.surname FROM Customer
+--     INNER JOIN Room_accommodation ON Customer.personal_id = Room_accommodation.personal_id
+--     WHERE Room_accommodation.personal_id is not NULL
+--     AND Customer.surname IN
+--             (SELECT Customer.surname FROM Customer
+--             NATURAL JOIN Reservation
+--             WHERE end_date < CURRENT_DATE);
 
---select display shows all workers and which reservations they are currently managing
-SELECT Worker.id AS "WORKER ID", Worker.first_name, Worker.surname, Worker.position, Reservation.id AS "RESERVATION ID"
-FROM Reservation
-INNER JOIN Worker ON Reservation.worker_id = Worker.id
-ORDER BY Worker.id;
 
--- the select command will display event reservations and where each event will take place
-SELECT Reservation.id AS "RESERVATION ID", Reservation.start_date, Reservation.end_date, Event.event_id AS "EVENT ID", Room_event.room_id AS "ROOM ID", Room_event.description
-FROM Reservation
-INNER JOIN Event ON Reservation.id = Event.reservation_id
-INNER JOIN Room_event ON Event.event_id = Room_event.event_id;
+CREATE OR REPLACE TRIGGER check_availability
+    BEFORE UPDATE ON Room_accommodation
+    FOR EACH ROW
+    DECLARE
+        room_count INT;
+        pragma autonomous_transaction;
+    BEGIN
+        SELECT COUNT(*) INTO room_count FROM Room_accommodation WHERE room_id = :new.room_id AND personal_id is not null;
 
--- select display all empty rooms grouped by class of luxury
-SELECT class_luxury,COUNT(*) FROM Room_accommodation
-WHERE Room_accommodation.personal_id is NULL
-GROUP BY (class_luxury);
+        IF room_count != 0 then
+            raise_application_error(-20100,'Cannot add customer to this room');
+        END IF;
+    END;
 
--- List the number of reservations for each month
-SELECT TO_CHAR(start_date,'MM') AS month, COUNT(*) as number_of_reservations
-FROM Reservation
-GROUP BY(TO_CHAR(start_date,'MM'))
-ORDER BY(TO_CHAR(start_date, 'MM'));
-
--- List customers which have only stayed in the terrace suite
-SELECT DISTINCT first_name,surname,Customer.personal_id,class_luxury
-FROM Customer
-INNER JOIN Reservation ON Customer.personal_id = Reservation.personal_id
-INNER JOIN Reserved_rooms_acc ON Reservation.id = Reserved_rooms_acc.reservation_id
-INNER JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
-WHERE class_luxury = 'Terrace Suite'
-AND EXISTS(
-                SELECT *
-                FROM Customer
-                INNER JOIN Reservation ON Customer.personal_id = Reservation.personal_id
-                INNER JOIN Reserved_rooms_acc ON Reservation.id = Reserved_rooms_acc.reservation_id
-                INNER JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
-                WHERE class_luxury <> 'Terrace Suite');
-
--- List currently accommodated customers that have previously stayed at the hotel
-SELECT Customer.first_name, Customer.surname FROM Customer
-    INNER JOIN Room_accommodation ON Customer.personal_id = Room_accommodation.personal_id
-    WHERE Room_accommodation.personal_id is not NULL
-    AND Customer.surname IN
-            (SELECT Customer.surname FROM Customer
-            NATURAL JOIN Reservation
-            WHERE end_date < CURRENT_DATE);
+UPDATE Room_accommodation SET personal_id = NULL WHERE room_id = 1;
 
 COMMIT;
