@@ -322,13 +322,13 @@ CREATE OR REPLACE TRIGGER check_availability
         room_count INT;
         pragma autonomous_transaction;
     BEGIN
-        SELECT COUNT(*) INTO room_count FROM Room_accommodation WHERE room_id = :new.room_id AND personal_id is not null;
-
-        IF room_count != 0 then
-            raise_application_error(-20100,'Cannot add customer to this room');
-        END IF;
+        SELECT COUNT(*) INTO room_count FROM Room_accommodation WHERE room_id = :new.room_id AND :old.personal_id is not null;
+            IF :new.personal_id is not null and room_count > 0 then
+                raise_application_error(-20100,'Cannot add customer to this room');
+            END IF;
     END;
+SELECT room_id, personal_id from Room_accommodation;
 
-UPDATE Room_accommodation SET personal_id = NULL WHERE room_id = 1;
-
+UPDATE Room_accommodation SET personal_id = '1111111111' WHERE room_id = 1;
+SELECT room_id, personal_id from Room_accommodation;
 COMMIT;
