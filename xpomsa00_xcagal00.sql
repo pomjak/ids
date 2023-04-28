@@ -54,6 +54,7 @@ CREATE TABLE Reservation (
     worker_id       INT             NOT NULL,
     start_date      DATE            NOT NULL,
     end_date        DATE            NOT NULL,
+    num_of_guests   INT             NOT NULL,
     total_price     DECIMAL(10, 2)  NOT NULL,
     payment_status  VARCHAR(20)     NOT NULL,
 
@@ -161,25 +162,25 @@ VALUES
 ('Sarah','Connor', 'sarahconnor@gmail.com', '9876543210', 'Receptionist');
 
 -- Insert test values into Reservation table
-INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_date, end_date, total_price, payment_status)
+INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_date, end_date,num_of_guests, total_price, payment_status)
 VALUES
-('Accommodation', 1, NULL, '3333333333', 1, DATE '2023-04-01', DATE'2023-04-05', 500.00, 'Unpaid');
+('Accommodation', 1, NULL, '3333333333', 1, DATE '2023-04-01', DATE'2023-04-05', 1,500.00, 'Unpaid');
 
-INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_date, end_date, total_price, payment_status)
+INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_date, end_date,num_of_guests, total_price, payment_status)
 VALUES
-('Accommodation', 2, NULL, '2222222222', 2, DATE '2023-01-10', DATE'2023-01-20', 1000.00, 'Paid');
+('Accommodation', 2, NULL, '2222222222', 2, DATE '2023-01-10', DATE'2023-01-20', 6,1000.00, 'Paid');
 
-INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_date, end_date, total_price, payment_status)
+INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_date, end_date,num_of_guests, total_price, payment_status)
 VALUES
-('Accommodation', NULL, NULL, '4444444444', 1, DATE '2023-02-13', DATE'2023-03-01', 854.00, 'Paid');
+('Accommodation', NULL, NULL, '4444444444', 1, DATE '2023-02-13', DATE'2023-03-01',1, 854.00, 'Paid');
 
-INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_date, end_date, total_price, payment_status)
+INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_date, end_date,num_of_guests, total_price, payment_status)
 VALUES
-('Event', NULL, 1, '1111111111', 2, DATE'2023-05-01', DATE'2023-05-02', 100.00, 'Unpaid');
+('Event', NULL, 1, '1111111111', 2, DATE'2023-05-01', DATE'2023-05-02', 100.00, 1,'Unpaid');
 
-INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_date, end_date, total_price, payment_status)
+INSERT INTO Reservation (type, room_id, event_id, personal_id, worker_id, start_date, end_date,num_of_guests, total_price, payment_status)
 VALUES
-('Event', NULL, 2, '4444444444', 2, DATE'2023-03-15', DATE'2023-03-16', 150.00, 'Paid');
+('Event', NULL, 2, '4444444444', 2, DATE'2023-03-15', DATE'2023-03-16', 150.00, 1,'Paid');
 
 -- Insert test values into Event table
 INSERT INTO Event (type, start_date, end_date, reservation_id)
@@ -245,9 +246,9 @@ INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
 VALUES
 (1, 1);
 
-INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
-VALUES
-(2, 2);
+-- INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
+-- VALUES
+-- (2, 2);
 
 INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
 VALUES
@@ -276,6 +277,32 @@ CREATE OR REPLACE TRIGGER check_availability
             END IF;
     END;
 
+CREATE OR REPLACE TRIGGER max_guests_trigger
+AFTER INSERT ON Reserved_rooms_acc
+FOR EACH ROW
+DECLARE
+    max_guests NUMBER;
+    num NUMBER;
+BEGIN
+    -- Calculate the maximum number of guests allowed for the room
+    SELECT (single_beds + (double_beds * 2)) INTO max_guests
+    FROM Room_accommodation
+    WHERE room_id = :new.room_id;
+
+    -- Get the number of guests for the reservation
+    SELECT num_of_guests
+    INTO num
+    FROM Reservation r
+    WHERE r.id = :new.reservation_id;
+
+    DBMS_OUTPUT.PUT_LINE('num:'||num||'MAX:'||max_guests);
+
+    -- Check if the maximum number of guests has been exceeded
+    IF num > max_guests THEN
+        -- Raise an exception to indicate that the maximum number of guests has been exceeded
+        raise_application_error(-20200, 'Maximum number of guests has been exceeded');
+    END IF;
+END;
 
 ------- examples of trigger functionality -------
 ------- trigger check_availability -------
@@ -293,6 +320,21 @@ UPDATE Room_accommodation SET personal_id = NULL WHERE room_id = 1;         --th
 UPDATE Room_accommodation SET personal_id = '1111111111' WHERE room_id = 1;
 SELECT room_id, personal_id from Room_accommodation where room_id = 1;
 
-------- trigger no.2 -------
+------- trigger max_guests_trigger -------
+BEGIN
+    INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
+    VALUES
+    (2, 2);
 
+EXCEPTION
+    WHEN OTHERS THEN
+        IF SQLCODE = -20200 THEN
+            DBMS_OUTPUT.PUT_LINE('EXCEPTION CAUGHT: -20200: # of customers has been exceeded');
+        ELSE
+            DBMS_OUTPUT.PUT_LINE('Error ' || SQLCODE || ': ' || SQLERRM);
+        END IF;
+END;
 COMMIT;
+
+
+
