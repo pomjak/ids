@@ -253,6 +253,11 @@ INSERT INTO Reserved_rooms_event (reservation_id, room_id)
 VALUES (5, 98);
 
 
+
+-------------- TRIGGER - check if room is available --------------
+------------------------------------------------------------------
+
+
 CREATE OR REPLACE TRIGGER check_availability
     BEFORE UPDATE
     ON Room_accommodation
@@ -265,11 +270,42 @@ BEGIN
     INTO room_count
     FROM Room_accommodation
     WHERE room_id = :new.room_id
-      AND :old.personal_id is not null;
+        AND :old.personal_id is not null;
     IF :new.personal_id is not null and room_count > 0 then
         raise_application_error(-20100, 'Cannot add customer to already occupied room');
     END IF;
 END;
+
+-- SELECT room_id, personal_id
+-- from Room_accommodation
+-- where room_id = 1;
+
+BEGIN
+    UPDATE Room_accommodation
+    SET personal_id = '1111111111'
+    WHERE room_id = 1; --room no.1 is already occupied, therefore we cannot assign a new customer to it.
+EXCEPTION
+    WHEN OTHERS THEN
+        IF SQLCODE = -20100 THEN
+            DBMS_OUTPUT.PUT_LINE('EXCEPTION CAUGHT: -20100: room is already occupied');
+        END IF;
+END;
+
+
+
+-------------- TRIGGER - reservation paid  --------------
+---------------------------------------------------------
+
+
+UPDATE Room_accommodation
+SET personal_id = NULL
+WHERE room_id = 1; --the old customer must be checked out (set to null) before adding the new one
+
+UPDATE Room_accommodation
+SET personal_id = '1111111111'
+WHERE room_id = 1;
+
+
 
 CREATE OR REPLACE TRIGGER reservation_paid_trigger
     AFTER UPDATE
@@ -298,33 +334,6 @@ BEGIN
 
 END;
 
--------------- examples of trigger functionality --------------
--------------- trigger check_availability --------------
--- SELECT room_id, personal_id
--- from Room_accommodation
--- where room_id = 1;
-
-BEGIN
-    UPDATE Room_accommodation
-    SET personal_id = '1111111111'
-    WHERE room_id = 1; --room no.1 is already occupied, therefore we cannot assign a new customer to it.
-EXCEPTION
-    WHEN OTHERS THEN
-        IF SQLCODE = -20100 THEN
-            DBMS_OUTPUT.PUT_LINE('EXCEPTION CAUGHT: -20100: room is already occupied');
-        END IF;
-END;
-
-UPDATE Room_accommodation
-SET personal_id = NULL
-WHERE room_id = 1; --the old customer must be checked out (set to null) before adding the new one
-
-UPDATE Room_accommodation
-SET personal_id = '1111111111'
-WHERE room_id = 1;
-
--------------- trigger max_guests_trigger --------------
-
 -- before update
 -- select res.id, payment_status, room.personal_id
 -- from Reservation res
@@ -347,7 +356,10 @@ where id = 1;
 -- from Reserved_rooms_acc;
 
 
-------- Procedure - calculate the price of a stay -------
+
+-------------- Procedure - calculate the price of a stay --------------
+-----------------------------------------------------------------------
+
 
 CREATE OR REPLACE PROCEDURE calculate_total_price(
     in_reservation_id IN INT
@@ -377,8 +389,8 @@ BEGIN
         SELECT Room_accommodation.price
         INTO l_room_price
         FROM Reservation
-                 JOIN Reserved_rooms_acc ON Reservation.id = Reserved_rooms_acc.reservation_id
-                 JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
+            JOIN Reserved_rooms_acc ON Reservation.id = Reserved_rooms_acc.reservation_id
+            JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
         WHERE Reservation.id = in_reservation_id;
     EXCEPTION
         WHEN OTHERS THEN
@@ -392,8 +404,8 @@ BEGIN
         SELECT Room_event.price
         INTO l_event_price
         FROM Reservation
-                 JOIN Event ON Reservation.id = Event.reservation_id
-                 JOIN Room_event ON Event.event_id = Room_event.event_id
+            JOIN Event ON Reservation.id = Event.reservation_id
+            JOIN Room_event ON Event.event_id = Room_event.event_id
         WHERE Reservation.id = in_reservation_id;
     EXCEPTION
         WHEN OTHERS THEN
@@ -407,7 +419,7 @@ BEGIN
         SELECT Event.start_date, Event.end_date
         INTO l_event_start, l_event_end
         FROM Reservation
-                 JOIN Event ON Reservation.id = Event.reservation_id
+            JOIN Event ON Reservation.id = Event.reservation_id
         WHERE Reservation.id = in_reservation_id;
     EXCEPTION
         WHEN OTHERS THEN
@@ -423,7 +435,7 @@ BEGIN
         SELECT Service.price
         INTO l_service_price
         FROM Reservation
-                 JOIN Service ON Reservation.id = Service.reservation_id
+            JOIN Service ON Reservation.id = Service.reservation_id
         WHERE Reservation.id = in_reservation_id;
     EXCEPTION
         WHEN OTHERS THEN
@@ -456,6 +468,12 @@ EXCEPTION
             DBMS_OUTPUT.PUT_LINE('invalid reservation id');
         end if;
 END;
+
+
+
+-------------- Procedure - check if num of customers is less then max capacity --------------
+---------------------------------------------------------------------------------------------
+
 
 
 INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_id)
@@ -491,10 +509,10 @@ BEGIN
     SELECT SUM(total_num_of_beds)
     INTO l_available_beds
     FROM (SELECT ((double_beds * 2) + single_beds)
-                     AS total_num_of_beds
-          FROM Reserved_rooms_acc
-                   JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
-          WHERE Reserved_rooms_acc.reservation_id = in_reservation_id);
+                    AS total_num_of_beds
+        FROM Reserved_rooms_acc
+        JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
+        WHERE Reserved_rooms_acc.reservation_id = in_reservation_id);
 
     DBMS_OUTPUT.PUT_LINE('guest num ' || l_num_of_guests);
     DBMS_OUTPUT.PUT_LINE('available beds ' || l_available_beds);
@@ -514,6 +532,12 @@ EXCEPTION
         end if;
 END;
 
+
+
+-------------- Granting privileges --------------
+-------------------------------------------------
+
+
 GRANT ALL PRIVILEGES ON Customer TO XCAGAL00;
 GRANT ALL PRIVILEGES ON Worker TO XCAGAL00;
 GRANT ALL PRIVILEGES ON Reservation TO XCAGAL00;
@@ -526,6 +550,12 @@ GRANT ALL PRIVILEGES ON Reserved_rooms_acc TO XCAGAL00;
 
 GRANT EXECUTE ON calculate_total_price TO XCAGAL00;
 GRANT EXECUTE ON check_num_of_customers TO XCAGAL00;
+
+
+
+-------------- SELECT WITH, CASE --------------
+-----------------------------------------------
+
 
 WITH room_acc_stats AS (SELECT Room_accommodation.room_id,
                             CASE
@@ -549,7 +579,4 @@ WHERE room_rate > 0
 ORDER BY room_id
         ASC;
 
-
 COMMIT;
-
-
