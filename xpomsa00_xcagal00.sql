@@ -459,10 +459,10 @@ END;
 
 
 INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_id)
-VALUES (69, 'Luxury suite', 200.00, 1, 1, 'Executive Suite', '2222222222');
+VALUES (8, 'Luxury suite', 200.00, 1, 1, 'Executive Suite', '2222222222');
 
 INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
-VALUES (1, 69);
+VALUES (1, 8);
 
 
 
@@ -511,9 +511,46 @@ BEGIN
 EXCEPTION
         WHEN OTHERS THEN
             IF SQLCODE = -20200 THEN
-                DBMS_OUTPUT.PUT_LINE('EXCEPTION CAUGHT: -20200: Number of guests exceeded the available beds for this reservation');
+                DBMS_OUTPUT.PUT_LINE('EXCEPTION CAUGHT: -20200 : Number of guests exceeded the available beds for this reservation');
             end if;
 END;
+
+GRANT ALL PRIVILEGES ON Customer TO XCAGAL00;
+GRANT ALL PRIVILEGES ON Worker TO XCAGAL00;
+GRANT ALL PRIVILEGES ON Reservation TO XCAGAL00;
+GRANT ALL PRIVILEGES ON Event TO XCAGAL00;
+GRANT ALL PRIVILEGES ON Service TO XCAGAL00;
+GRANT ALL PRIVILEGES ON Room_event TO XCAGAL00;
+GRANT ALL PRIVILEGES ON Room_accommodation TO XCAGAL00;
+GRANT ALL PRIVILEGES ON Reserved_rooms_event TO XCAGAL00;
+GRANT ALL PRIVILEGES ON Reserved_rooms_acc TO XCAGAL00;
+
+GRANT EXECUTE ON calculate_total_price TO XCAGAL00;
+GRANT EXECUTE ON check_num_of_customers TO XCAGAL00;
+
+WITH room_acc_stats AS (
+    SELECT Room_accommodation.room_id,
+        CASE
+            WHEN class_luxury = 'Junior Suite' THEN 100
+            WHEN class_luxury = 'Deluxe Suite' THEN 150
+            WHEN class_luxury = 'Executive Suite' THEN 250
+            WHEN class_luxury = 'Terrace Suite' THEN 350
+            ELSE 0
+        END AS room_rate,
+        CASE
+            WHEN payment_status = 'Unpaid' THEN 'Occupied'
+            ELSE 'Available'
+        END AS room_status
+    FROM   Room_accommodation
+    LEFT OUTER JOIN Reserved_rooms_acc on Room_accommodation.room_id = Reserved_rooms_acc.room_id
+    LEFT OUTER JOIN  Reservation ON Reserved_rooms_acc.reservation_id = Reservation.id
+)
+SELECT room_id, room_rate, room_status
+FROM   room_acc_stats
+WHERE  room_rate > 0
+ORDER BY room_id
+ASC;
+
 
 COMMIT;
 
