@@ -346,6 +346,110 @@ where id = 1;
 select *
 from Reserved_rooms_acc;
 
+
+
+------- Procedure - calculate the price of a stay -------
+
+CREATE OR REPLACE PROCEDURE calculate_total_price (
+    in_reservation_id IN INT
+)
+AS
+    l_start_date      Reservation.start_date%TYPE;
+    l_end_date        Reservation.end_date%TYPE;
+    l_num_of_nights   INT := 0; -- initialize to 0
+    l_room_price      DECIMAL := 0; -- initialize to 0
+    l_event_price     DECIMAL := 0; -- initialize to 0
+    l_event_start     Event.start_date%TYPE;
+    l_event_end       Event.start_date%TYPE;
+    l_event_length    INT := 0; -- initialize to 0
+    l_service_price   DECIMAL := 0; -- initialize to 0
+    l_total_price     DECIMAL := 0; -- initialize to 0
+BEGIN
+
+    -- get the length of the stay
+    SELECT start_date, end_date
+    INTO l_start_date, l_end_date
+    FROM Reservation
+    WHERE id = in_reservation_id;
+
+    l_num_of_nights = COALESCE(l_end_date - l_start_date, 0) ;
+
+    DBMS_OUTPUT.PUT_LINE('  num nights: ' || l_num_of_nights);
+
+    BEGIN
+        SELECT Room_accommodation.price
+        INTO l_room_price
+        FROM Reservation
+        JOIN Reserved_rooms_acc ON Reservation.id = Reserved_rooms_acc.reservation_id
+        JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
+        WHERE Reservation.id = in_reservation_id;
+    EXCEPTION
+        WHEN OTHERS THEN
+            IF SQLCODE = -01403 THEN
+                l_room_price := 0;
+            END IF;
+    END;
+
+
+    BEGIN
+        SELECT Room_event.price
+        INTO l_event_price
+        FROM Reservation
+        JOIN Event ON Reservation.id = Event.reservation_id
+        JOIN Room_event ON Event.event_id = Room_event.event_id
+        WHERE Reservation.id = in_reservation_id;
+    EXCEPTION
+        WHEN OTHERS THEN
+            IF SQLCODE = -01403 THEN
+                l_event_price := 0;
+            END IF;
+    END;
+
+
+    BEGIN
+        SELECT Event.start_date, Event.end_date
+        INTO l_event_start, l_event_end
+        FROM Reservation JOIN Event ON Reservation.id = Event.reservation_id
+        WHERE Reservation.id = in_reservation_id;
+    EXCEPTION
+        WHEN OTHERS THEN
+            IF SQLCODE = -01403 THEN
+                l_event_length := 0;
+            end if;
+    END;
+
+    l_event_length = COALESCE(l_event_end - l_event_start, 0);
+
+
+    BEGIN
+        SELECT Service.price
+        INTO l_service_price
+        FROM Reservation
+        JOIN Service ON Reservation.id = Service.reservation_id
+        WHERE Reservation.id = in_reservation_id;
+    EXCEPTION
+        WHEN OTHERS THEN
+            IF SQLCODE = -01403 THEN
+                l_service_price := 0;
+            end if;
+    END;
+
+    l_total_price = COALESCE ((l_room_price*l_num_of_nights) + (l_event_price * l_event_length) + l_service_price, 0);
+
+
+    UPDATE Reservation
+    SET total_price = l_total_price
+    WHERE id = in_reservation_id;
+
+
+    DBMS_OUTPUT.PUT_LINE('--- PAYMENT FOR RESERVATION: ' || in_reservation_id || '---');
+    DBMS_OUTPUT.PUT_LINE('  Room: ' || l_room_price);
+    DBMS_OUTPUT.PUT_LINE('  Events: ' || l_event_price);
+    DBMS_OUTPUT.PUT_LINE('  Services: ' || l_service_price);
+    DBMS_OUTPUT.PUT_LINE('  TOTAL: ' || l_total_price);
+END;
+
+
 COMMIT;
 
 
