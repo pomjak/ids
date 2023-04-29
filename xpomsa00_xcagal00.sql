@@ -174,11 +174,11 @@ VALUES ('Accommodation', '3333333333', 1, DATE '2023-04-01', DATE'2023-04-05', 1
 
 INSERT INTO Reservation (type, personal_id, worker_id, start_date, end_date, num_of_guests,
                          total_price, payment_status)
-VALUES ('Accommodation', '2222222222', 2, DATE '2023-01-10', DATE'2023-01-20', 6, 1000.00, 'Paid');
+VALUES ('Accommodation', '2222222222', 2, DATE '2023-01-10', DATE'2023-01-20', 6, 1000.00, 'Unpaid');
 
 INSERT INTO Reservation (type, personal_id, worker_id, start_date, end_date, num_of_guests,
                          total_price, payment_status)
-VALUES ('Accommodation', '4444444444', 1, DATE '2023-02-13', DATE'2023-03-01', 1, 854.00, 'Paid');
+VALUES ('Accommodation', '4444444444', 1, DATE '2023-02-13', DATE'2023-03-01', 1, 854.00, 'Unpaid');
 
 INSERT INTO Reservation (type, personal_id, worker_id, start_date, end_date, num_of_guests,
                          total_price, payment_status)
@@ -186,7 +186,7 @@ VALUES ('Event', '1111111111', 2, DATE'2023-05-01', DATE'2023-05-02', 100.00, 1,
 
 INSERT INTO Reservation (type, personal_id, worker_id, start_date, end_date, num_of_guests,
                          total_price, payment_status)
-VALUES ('Event', '4444444444', 2, DATE'2023-03-15', DATE'2023-03-16', 150.00, 1, 'Paid');
+VALUES ('Event', '4444444444', 2, DATE'2023-03-15', DATE'2023-03-16', 150.00, 1, 'Unpaid');
 
 -- Insert test values into Event table
 INSERT INTO Event (type, start_date, end_date, reservation_id)
@@ -372,9 +372,7 @@ BEGIN
     FROM Reservation
     WHERE id = in_reservation_id;
 
-    l_num_of_nights = COALESCE(l_end_date - l_start_date, 0) ;
-
-    DBMS_OUTPUT.PUT_LINE('  num nights: ' || l_num_of_nights);
+    l_num_of_nights := COALESCE(l_end_date - l_start_date, 0) ;
 
     BEGIN
         SELECT Room_accommodation.price
@@ -418,7 +416,7 @@ BEGIN
             end if;
     END;
 
-    l_event_length = COALESCE(l_event_end - l_event_start, 0);
+    l_event_length := COALESCE(l_event_end - l_event_start, 0);
 
 
     BEGIN
@@ -434,7 +432,7 @@ BEGIN
             end if;
     END;
 
-    l_total_price = COALESCE ((l_room_price*l_num_of_nights) + (l_event_price * l_event_length) + l_service_price, 0);
+    l_total_price := COALESCE ((l_room_price*l_num_of_nights) + (l_event_price * l_event_length) + l_service_price, 0);
 
 
     UPDATE Reservation
@@ -449,6 +447,16 @@ BEGIN
     DBMS_OUTPUT.PUT_LINE('  TOTAL: ' || l_total_price);
 END;
 
+BEGIN
+    calculate_total_price(2);
+EXCEPTION
+        WHEN OTHERS THEN
+            IF SQLCODE = -01403 THEN
+                DBMS_OUTPUT.PUT_LINE('invalid reservation id');
+            end if;
+END;
+select * from Reservation where id = 2;
+select * from Reserved_rooms_acc;
 
 COMMIT;
 
