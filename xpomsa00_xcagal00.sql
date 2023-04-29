@@ -347,23 +347,22 @@ where id = 1;
 -- from Reserved_rooms_acc;
 
 
-
 ------- Procedure - calculate the price of a stay -------
 
-CREATE OR REPLACE PROCEDURE calculate_total_price (
+CREATE OR REPLACE PROCEDURE calculate_total_price(
     in_reservation_id IN INT
 )
 AS
-    l_start_date      Reservation.start_date%TYPE;
-    l_end_date        Reservation.end_date%TYPE;
-    l_num_of_nights   INT := 0; -- initialize to 0
-    l_room_price      DECIMAL := 0; -- initialize to 0
-    l_event_price     DECIMAL := 0; -- initialize to 0
-    l_event_start     Event.start_date%TYPE;
-    l_event_end       Event.start_date%TYPE;
-    l_event_length    INT := 0; -- initialize to 0
-    l_service_price   DECIMAL := 0; -- initialize to 0
-    l_total_price     DECIMAL := 0; -- initialize to 0
+    l_start_date    Reservation.start_date%TYPE;
+    l_end_date      Reservation.end_date%TYPE;
+    l_num_of_nights INT     := 0; -- initialize to 0
+    l_room_price    DECIMAL := 0; -- initialize to 0
+    l_event_price   DECIMAL := 0; -- initialize to 0
+    l_event_start   Event.start_date%TYPE;
+    l_event_end     Event.start_date%TYPE;
+    l_event_length  INT     := 0; -- initialize to 0
+    l_service_price DECIMAL := 0; -- initialize to 0
+    l_total_price   DECIMAL := 0; -- initialize to 0
 BEGIN
 
     -- get the length of the stay
@@ -372,14 +371,14 @@ BEGIN
     FROM Reservation
     WHERE id = in_reservation_id;
 
-    l_num_of_nights := COALESCE(l_end_date - l_start_date, 0) ;
+    l_num_of_nights := COALESCE(l_end_date - l_start_date, 0);
 
     BEGIN
         SELECT Room_accommodation.price
         INTO l_room_price
         FROM Reservation
-        JOIN Reserved_rooms_acc ON Reservation.id = Reserved_rooms_acc.reservation_id
-        JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
+                 JOIN Reserved_rooms_acc ON Reservation.id = Reserved_rooms_acc.reservation_id
+                 JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
         WHERE Reservation.id = in_reservation_id;
     EXCEPTION
         WHEN OTHERS THEN
@@ -393,8 +392,8 @@ BEGIN
         SELECT Room_event.price
         INTO l_event_price
         FROM Reservation
-        JOIN Event ON Reservation.id = Event.reservation_id
-        JOIN Room_event ON Event.event_id = Room_event.event_id
+                 JOIN Event ON Reservation.id = Event.reservation_id
+                 JOIN Room_event ON Event.event_id = Room_event.event_id
         WHERE Reservation.id = in_reservation_id;
     EXCEPTION
         WHEN OTHERS THEN
@@ -407,7 +406,8 @@ BEGIN
     BEGIN
         SELECT Event.start_date, Event.end_date
         INTO l_event_start, l_event_end
-        FROM Reservation JOIN Event ON Reservation.id = Event.reservation_id
+        FROM Reservation
+                 JOIN Event ON Reservation.id = Event.reservation_id
         WHERE Reservation.id = in_reservation_id;
     EXCEPTION
         WHEN OTHERS THEN
@@ -423,7 +423,7 @@ BEGIN
         SELECT Service.price
         INTO l_service_price
         FROM Reservation
-        JOIN Service ON Reservation.id = Service.reservation_id
+                 JOIN Service ON Reservation.id = Service.reservation_id
         WHERE Reservation.id = in_reservation_id;
     EXCEPTION
         WHEN OTHERS THEN
@@ -432,7 +432,7 @@ BEGIN
             end if;
     END;
 
-    l_total_price := COALESCE ((l_room_price*l_num_of_nights) + (l_event_price * l_event_length) + l_service_price, 0);
+    l_total_price := COALESCE((l_room_price * l_num_of_nights) + (l_event_price * l_event_length) + l_service_price, 0);
 
 
     UPDATE Reservation
@@ -451,10 +451,10 @@ END;
 BEGIN
     calculate_total_price(2);
 EXCEPTION
-        WHEN OTHERS THEN
-            IF SQLCODE = -01403 THEN
-                DBMS_OUTPUT.PUT_LINE('invalid reservation id');
-            end if;
+    WHEN OTHERS THEN
+        IF SQLCODE = -01403 THEN
+            DBMS_OUTPUT.PUT_LINE('invalid reservation id');
+        end if;
 END;
 
 
@@ -466,11 +466,11 @@ VALUES (1, 8);
 
 
 
-CREATE OR REPLACE PROCEDURE check_num_of_customers (
+CREATE OR REPLACE PROCEDURE check_num_of_customers(
     in_reservation_id IN INT
 )
 AS
-    l_num_of_guests INT;
+    l_num_of_guests  INT;
     l_available_beds INT;
 
 
@@ -490,15 +490,14 @@ BEGIN
 
     SELECT SUM(total_num_of_beds)
     INTO l_available_beds
-    FROM
-        (SELECT ((double_beds * 2) + single_beds)
-        AS total_num_of_beds
-        FROM Reserved_rooms_acc
-        JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
-        WHERE Reserved_rooms_acc.reservation_id = in_reservation_id);
+    FROM (SELECT ((double_beds * 2) + single_beds)
+                     AS total_num_of_beds
+          FROM Reserved_rooms_acc
+                   JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
+          WHERE Reserved_rooms_acc.reservation_id = in_reservation_id);
 
-    DBMS_OUTPUT.PUT_LINE('guest num '||l_num_of_guests);
-    DBMS_OUTPUT.PUT_LINE('available beds '||l_available_beds);
+    DBMS_OUTPUT.PUT_LINE('guest num ' || l_num_of_guests);
+    DBMS_OUTPUT.PUT_LINE('available beds ' || l_available_beds);
 
     IF l_num_of_guests > l_available_beds THEN
         RAISE_APPLICATION_ERROR(-20200, 'Number of guests exceeded the available beds for this reservation');
@@ -509,10 +508,10 @@ END;
 BEGIN
     check_num_of_customers(2);
 EXCEPTION
-        WHEN OTHERS THEN
-            IF SQLCODE = -20200 THEN
-                DBMS_OUTPUT.PUT_LINE('EXCEPTION CAUGHT: -20200 : Number of guests exceeded the available beds for this reservation');
-            end if;
+    WHEN OTHERS THEN
+        IF SQLCODE = -20200 THEN
+            DBMS_OUTPUT.PUT_LINE('EXCEPTION CAUGHT: -20200 : Number of guests exceeded the available beds for this reservation');
+        end if;
 END;
 
 GRANT ALL PRIVILEGES ON Customer TO XCAGAL00;
@@ -528,28 +527,27 @@ GRANT ALL PRIVILEGES ON Reserved_rooms_acc TO XCAGAL00;
 GRANT EXECUTE ON calculate_total_price TO XCAGAL00;
 GRANT EXECUTE ON check_num_of_customers TO XCAGAL00;
 
-WITH room_acc_stats AS (
-    SELECT Room_accommodation.room_id,
-        CASE
-            WHEN class_luxury = 'Junior Suite' THEN 100
-            WHEN class_luxury = 'Deluxe Suite' THEN 150
-            WHEN class_luxury = 'Executive Suite' THEN 250
-            WHEN class_luxury = 'Terrace Suite' THEN 350
-            ELSE 0
-        END AS room_rate,
-        CASE
-            WHEN payment_status = 'Unpaid' THEN 'Occupied'
-            ELSE 'Available'
-        END AS room_status
-    FROM   Room_accommodation
-    LEFT OUTER JOIN Reserved_rooms_acc on Room_accommodation.room_id = Reserved_rooms_acc.room_id
-    LEFT OUTER JOIN  Reservation ON Reserved_rooms_acc.reservation_id = Reservation.id
-)
+WITH room_acc_stats AS (SELECT Room_accommodation.room_id,
+                            CASE
+                                WHEN class_luxury = 'Junior Suite' THEN 100
+                                WHEN class_luxury = 'Deluxe Suite' THEN 150
+                                WHEN class_luxury = 'Executive Suite' THEN 250
+                                WHEN class_luxury = 'Terrace Suite' THEN 350
+                                ELSE 0
+                                    END AS room_rate,
+                            CASE
+                                WHEN payment_status = 'Unpaid' THEN 'Occupied'
+                                ELSE 'Available'
+                                END AS room_status
+                        FROM Room_accommodation
+                        LEFT OUTER JOIN Reserved_rooms_acc
+                            on Room_accommodation.room_id = Reserved_rooms_acc.room_id
+                        LEFT OUTER JOIN Reservation ON Reserved_rooms_acc.reservation_id = Reservation.id)
 SELECT room_id, room_rate, room_status
-FROM   room_acc_stats
-WHERE  room_rate > 0
+FROM room_acc_stats
+WHERE room_rate > 0
 ORDER BY room_id
-ASC;
+        ASC;
 
 
 COMMIT;
