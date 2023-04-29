@@ -326,25 +326,25 @@ WHERE room_id = 1;
 -------------- trigger max_guests_trigger --------------
 
 -- before update
-select res.id, payment_status, room.personal_id
-from Reservation res
-         join Reserved_rooms_acc res_room on res.id = res_room.reservation_id
-         join Room_accommodation room on res_room.room_id = room.room_id
-where id = 1;
+-- select res.id, payment_status, room.personal_id
+-- from Reservation res
+--          join Reserved_rooms_acc res_room on res.id = res_room.reservation_id
+--          join Room_accommodation room on res_room.room_id = room.room_id
+-- where id = 1;
 
 UPDATE Reservation
 set payment_status = 'Paid'
 where id = 1;
 
 -- after update
-select res.id, payment_status, room.personal_id
-from Reservation res
-         join Reserved_rooms_acc res_room on res.id = res_room.reservation_id
-         join Room_accommodation room on res_room.room_id = room.room_id
-where id = 1;
-
-select *
-from Reserved_rooms_acc;
+-- select res.id, payment_status, room.personal_id
+-- from Reservation res
+--          join Reserved_rooms_acc res_room on res.id = res_room.reservation_id
+--          join Room_accommodation room on res_room.room_id = room.room_id
+-- where id = 1;
+--
+-- select *
+-- from Reserved_rooms_acc;
 
 
 
@@ -456,8 +456,6 @@ EXCEPTION
                 DBMS_OUTPUT.PUT_LINE('invalid reservation id');
             end if;
 END;
-select * from Reservation where id = 2;
-select * from Reserved_rooms_acc;
 
 
 INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_id)
@@ -477,29 +475,31 @@ AS
 
 
 BEGIN
-    SELECT num_of_guests
-    INTO l_num_of_guests
-    FROM Reservation
-    WHERE id = in_reservation_id;
+    BEGIN
+        SELECT num_of_guests
+        INTO l_num_of_guests
+        FROM Reservation
+        WHERE id = in_reservation_id;
     EXCEPTION
         WHEN OTHERS THEN
             IF SQLCODE = -01403 THEN
                 DBMS_OUTPUT.PUT_LINE('Invalid reservation id');
             end if;
-
+    END;
 
 
     SELECT SUM(total_num_of_beds)
     INTO l_available_beds
     FROM
-        (SELECT (double_beds * 2 + single_beds)
+        (SELECT ((double_beds * 2) + single_beds)
         AS total_num_of_beds
         FROM Reserved_rooms_acc
         JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
-        WHERE reservation_id = in_reservation_id);
+        WHERE Reserved_rooms_acc.reservation_id = in_reservation_id);
 
-     DBMS_OUTPUT.PUT_LINE(l_num_of_guests || 'guest num');
-    DBMS_OUTPUT.PUT_LINE(l_available_beds || 'available beds');
+    DBMS_OUTPUT.PUT_LINE('guest num '||l_num_of_guests);
+    DBMS_OUTPUT.PUT_LINE('available beds '||l_available_beds);
+
     IF l_num_of_guests > l_available_beds THEN
         RAISE_APPLICATION_ERROR(-20200, 'Number of guests exceeded the available beds for this reservation');
     end if;
@@ -511,7 +511,7 @@ BEGIN
 EXCEPTION
         WHEN OTHERS THEN
             IF SQLCODE = -20200 THEN
-                DBMS_OUTPUT.PUT_LINE('Number of guests exceeded the available beds for this reservation');
+                DBMS_OUTPUT.PUT_LINE('EXCEPTION CAUGHT: -20200: Number of guests exceeded the available beds for this reservation');
             end if;
 END;
 
