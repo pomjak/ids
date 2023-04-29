@@ -441,9 +441,10 @@ BEGIN
 
 
     DBMS_OUTPUT.PUT_LINE('--- PAYMENT FOR RESERVATION: ' || in_reservation_id || '---');
-    DBMS_OUTPUT.PUT_LINE('  Room: ' || l_room_price);
-    DBMS_OUTPUT.PUT_LINE('  Events: ' || l_event_price);
+    DBMS_OUTPUT.PUT_LINE('  Room: ' || l_room_price || '/ day');
+    DBMS_OUTPUT.PUT_LINE('  Events: ' || l_event_price || '/ day');
     DBMS_OUTPUT.PUT_LINE('  Services: ' || l_service_price);
+    DBMS_OUTPUT.PUT_LINE('  # of days: ' || l_num_of_nights);
     DBMS_OUTPUT.PUT_LINE('  TOTAL: ' || l_total_price);
 END;
 
@@ -457,6 +458,62 @@ EXCEPTION
 END;
 select * from Reservation where id = 2;
 select * from Reserved_rooms_acc;
+
+
+INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_id)
+VALUES (69, 'Luxury suite', 200.00, 1, 1, 'Executive Suite', '2222222222');
+
+INSERT INTO Reserved_rooms_acc (reservation_id, room_id)
+VALUES (1, 69);
+
+
+
+CREATE OR REPLACE PROCEDURE check_num_of_customers (
+    in_reservation_id IN INT
+)
+AS
+    l_num_of_guests INT;
+    l_available_beds INT;
+
+
+BEGIN
+    SELECT num_of_guests
+    INTO l_num_of_guests
+    FROM Reservation
+    WHERE id = in_reservation_id;
+    EXCEPTION
+        WHEN OTHERS THEN
+            IF SQLCODE = -01403 THEN
+                DBMS_OUTPUT.PUT_LINE('Invalid reservation id');
+            end if;
+
+
+
+    SELECT SUM(total_num_of_beds)
+    INTO l_available_beds
+    FROM
+        (SELECT (double_beds * 2 + single_beds)
+        AS total_num_of_beds
+        FROM Reserved_rooms_acc
+        JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
+        WHERE reservation_id = in_reservation_id);
+
+     DBMS_OUTPUT.PUT_LINE(l_num_of_guests || 'guest num');
+    DBMS_OUTPUT.PUT_LINE(l_available_beds || 'available beds');
+    IF l_num_of_guests > l_available_beds THEN
+        RAISE_APPLICATION_ERROR(-20200, 'Number of guests exceeded the available beds for this reservation');
+    end if;
+
+END;
+
+BEGIN
+    check_num_of_customers(2);
+EXCEPTION
+        WHEN OTHERS THEN
+            IF SQLCODE = -20200 THEN
+                DBMS_OUTPUT.PUT_LINE('Number of guests exceeded the available beds for this reservation');
+            end if;
+END;
 
 COMMIT;
 
