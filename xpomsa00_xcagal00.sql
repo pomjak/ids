@@ -9,9 +9,11 @@ BEGIN
     EXECUTE IMMEDIATE 'DROP TABLE Reserved_rooms_acc CASCADE CONSTRAINTS';
     EXECUTE IMMEDIATE 'DROP TABLE Reserved_rooms_event CASCADE CONSTRAINTS';
     EXECUTE IMMEDIATE 'DROP MATERIALIZED VIEW current_hotel_state';
+    Execute Immediate 'DROP INDEX index_res';
+    EXECUTE IMMEDIATE 'DROP INDEX index_ser';
 EXCEPTION
     WHEN OTHERS THEN
-        IF SQLCODE != -942 AND SQLCODE != -12003 THEN
+        IF SQLCODE != -942 AND SQLCODE != -12003 AND SQLCODE != -1418 THEN
             RAISE;
         END IF;
 END;
@@ -171,7 +173,7 @@ VALUES ('Sarah', 'Connor', 'sarahconnor@gmail.com', '9876543210', 'Receptionist'
 -- Insert test values into Reservation table
 INSERT INTO Reservation (type, personal_id, worker_id, start_date, end_date, num_of_guests,
                          total_price, payment_status)
-VALUES ('Accommodation', '3333333333', 1, DATE '2023-04-01', DATE'2023-04-05', 1, 500.00, 'Unpaid');
+VALUES ('Accommodation', '3333333333', 1, DATE '2023-05-01', DATE'2023-05-05', 1, 500.00, 'Unpaid');
 
 INSERT INTO Reservation (type, personal_id, worker_id, start_date, end_date, num_of_guests,
                          total_price, payment_status)
@@ -271,7 +273,7 @@ BEGIN
     INTO room_count
     FROM Room_accommodation
     WHERE room_id = :new.room_id
-        AND :old.personal_id is not null;
+      AND :old.personal_id is not null;
     IF :new.personal_id is not null and room_count > 0 then
         raise_application_error(-20100, 'Cannot add customer to already occupied room');
     END IF;
@@ -385,8 +387,8 @@ BEGIN
         SELECT Room_accommodation.price
         INTO l_room_price
         FROM Reservation
-            JOIN Reserved_rooms_acc ON Reservation.id = Reserved_rooms_acc.reservation_id
-            JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
+                 JOIN Reserved_rooms_acc ON Reservation.id = Reserved_rooms_acc.reservation_id
+                 JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
         WHERE Reservation.id = in_reservation_id;
     EXCEPTION
         WHEN OTHERS THEN
@@ -400,8 +402,8 @@ BEGIN
         SELECT Room_event.price
         INTO l_event_price
         FROM Reservation
-            JOIN Event ON Reservation.id = Event.reservation_id
-            JOIN Room_event ON Event.event_id = Room_event.event_id
+                 JOIN Event ON Reservation.id = Event.reservation_id
+                 JOIN Room_event ON Event.event_id = Room_event.event_id
         WHERE Reservation.id = in_reservation_id;
     EXCEPTION
         WHEN OTHERS THEN
@@ -415,7 +417,7 @@ BEGIN
         SELECT Event.start_date, Event.end_date
         INTO l_event_start, l_event_end
         FROM Reservation
-            JOIN Event ON Reservation.id = Event.reservation_id
+                 JOIN Event ON Reservation.id = Event.reservation_id
         WHERE Reservation.id = in_reservation_id;
     EXCEPTION
         WHEN OTHERS THEN
@@ -431,7 +433,7 @@ BEGIN
         SELECT Service.price
         INTO l_service_price
         FROM Reservation
-            JOIN Service ON Reservation.id = Service.reservation_id
+                 JOIN Service ON Reservation.id = Service.reservation_id
         WHERE Reservation.id = in_reservation_id;
     EXCEPTION
         WHEN OTHERS THEN
@@ -456,33 +458,17 @@ BEGIN
     DBMS_OUTPUT.PUT_LINE('  TOTAL: ' || l_total_price);
 END;
 
--- DECLARE
---   CURSOR reservation_cur IS
---     SELECT id FROM Reservation;
---   reservation_id Reservation.id%TYPE;
--- BEGIN
---   FOR res IN reservation_cur LOOP
---     reservation_id := res.id;
---     calculate_total_price(reservation_id);
---   END LOOP;
---
--- EXCEPTION
---     WHEN OTHERS THEN
---         IF SQLCODE = -01403 THEN
---             DBMS_OUTPUT.PUT_LINE('invalid reservation id');
---         end if;
--- END;
-
 DECLARE
-  reservation_id Reservation.id%TYPE;
-
-  CURSOR reservation_cur IS
-    SELECT id FROM Reservation;
+    reservation_id Reservation.id%TYPE;
+    CURSOR reservation_cur IS
+        SELECT id
+        FROM Reservation;
 BEGIN
-  FOR res IN reservation_cur LOOP
-    reservation_id := res.id;
-    calculate_total_price(reservation_id);
-  END LOOP;
+    FOR res IN reservation_cur
+        LOOP
+            reservation_id := res.id;
+            calculate_total_price(reservation_id);
+        END LOOP;
 
 EXCEPTION
     WHEN OTHERS THEN
@@ -497,7 +483,6 @@ END;
 
 -------------- Procedure - check if num of customers is less then max capacity --------------
 ---------------------------------------------------------------------------------------------
-
 
 
 INSERT INTO Room_accommodation (room_id, description, price, single_beds, double_beds, class_luxury, personal_id)
@@ -533,10 +518,10 @@ BEGIN
     SELECT SUM(total_num_of_beds)
     INTO l_available_beds
     FROM (SELECT ((double_beds * 2) + single_beds)
-                    AS total_num_of_beds
-        FROM Reserved_rooms_acc
-        JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
-        WHERE Reserved_rooms_acc.reservation_id = in_reservation_id);
+                     AS total_num_of_beds
+          FROM Reserved_rooms_acc
+                   JOIN Room_accommodation ON Reserved_rooms_acc.room_id = Room_accommodation.room_id
+          WHERE Reserved_rooms_acc.reservation_id = in_reservation_id);
 
     DBMS_OUTPUT.PUT_LINE('guest num ' || l_num_of_guests);
     DBMS_OUTPUT.PUT_LINE('available beds ' || l_available_beds);
@@ -577,37 +562,87 @@ GRANT EXECUTE ON check_num_of_customers TO XCAGAL00;
 
 
 
+-------------- EXPLAIN PLAN, INDEX --------------
+-------------------------------------------------
+SELECT index_name, table_name
+FROM user_indexes;
+
+EXPLAIN PLAN FOR
+    SELECT TO_CHAR(start_date,'MM') AS month, COUNT(*) as number_of_reservations,COUNT(service_id) as number_of_services,
+       COALESCE( SUM(S.price) , 0) as service_price , SUM(total_price)  as total_price
+    FROM Reservation
+    LEFT JOIN Service S on Reservation.id = S.reservation_id
+    GROUP BY(TO_CHAR(start_date,'MM'))
+    ORDER BY(TO_CHAR(start_date, 'MM'));
+
+-- before index
+SELECT PLAN_TABLE_OUTPUT FROM TABLE(DBMS_XPLAN.DISPLAY());
+
+CREATE INDEX index_res ON Reservation(start_date);
+CREATE INDEX index_ser ON Service(reservation_id);
+
+SELECT index_name, table_name
+FROM user_indexes;
+
+
+EXPLAIN PLAN FOR
+    SELECT TO_CHAR(start_date,'MM') AS month, COUNT(*) as number_of_reservations,COUNT(service_id) as number_of_services,
+       COALESCE( SUM(S.price) , 0) as service_price , SUM(total_price)  as total_price
+    FROM Reservation
+    LEFT JOIN Service S on Reservation.id = S.reservation_id
+    GROUP BY(TO_CHAR(start_date,'MM'))
+    ORDER BY(TO_CHAR(start_date, 'MM'));
+-- After index
+SELECT PLAN_TABLE_OUTPUT FROM TABLE(DBMS_XPLAN.DISPLAY());
+
+DROP INDEX index_ser;
+DROP INDEX index_res;
+
 -------------- MATERIALIZED VIEW current_hotel_state --------------
 -------------------------------------------------------------------
 
 
-
 CREATE MATERIALIZED VIEW current_hotel_state
 AS
-SELECT Res.id AS Reservation, Cust.first_name AS Name, Cust.surname AS Surname, Cust.personal_id AS pid, W.id AS Worker,
-       W.surname AS Worker_surname,RA.room_id AS Room_acc, E.type AS Event, RE.room_id AS Room_event, SE.name AS Service, Res.total_price
+SELECT Res.id           AS Reservation,
+       Cust.first_name  AS Name,
+       Cust.surname     AS Surname,
+       Cust.personal_id AS pid,
+       W.id             AS Worker,
+       W.surname        AS Worker_surname,
+       RA.room_id       AS Room_acc,
+       E.type           AS Event,
+       RE.room_id       AS Room_event,
+       SE.name          AS Service,
+       Res.total_price
 FROM Customer Cust
-JOIN Reservation Res ON Cust.personal_id = Res.personal_id
-JOIN Worker W ON Res.worker_id = W.id
-LEFT JOIN Reserved_rooms_acc RRA ON Res.id = RRA.reservation_id
-LEFT JOIN Room_accommodation RA ON RRA.room_id = RA.room_id
-LEFT JOIN Event E ON Res.id = E.reservation_id
-LEFT JOIN Room_event RE ON E.event_id = RE.event_id
-LEFT JOIN Service SE ON Res.id = SE.reservation_id
+         JOIN Reservation Res ON Cust.personal_id = Res.personal_id
+         JOIN Worker W ON Res.worker_id = W.id
+         LEFT JOIN Reserved_rooms_acc RRA ON Res.id = RRA.reservation_id
+         LEFT JOIN Room_accommodation RA ON RRA.room_id = RA.room_id
+         LEFT JOIN Event E ON Res.id = E.reservation_id
+         LEFT JOIN Room_event RE ON E.event_id = RE.event_id
+         LEFT JOIN Service SE ON Res.id = SE.reservation_id
 ORDER BY Res.id;
 
 GRANT ALL PRIVILEGES ON current_hotel_state TO XCAGAL00;
 -- current state
-SELECT * FROM current_hotel_state;
+SELECT *
+FROM current_hotel_state;
 -- select display all workers and which reservations they are currently managing
-SELECT Worker,Worker_surname, Reservation From CURRENT_HOTEL_STATE;
+SELECT Worker, Worker_surname, Reservation
+From CURRENT_HOTEL_STATE;
 -- select display all reservations, surname and total price
-SELECT Reservation,Surname, total_price From CURRENT_HOTEL_STATE;
+SELECT Reservation, Surname, total_price
+From CURRENT_HOTEL_STATE;
 -- every event, location of event and price
-SELECT Event,Room_event,total_price  From CURRENT_HOTEL_STATE Where Event is not null ;
+SELECT Event, Room_event, total_price
+From CURRENT_HOTEL_STATE
+Where Event is not null;
 -- every accomodation, location and price
-SELECT Reservation,Room_acc,total_price  From CURRENT_HOTEL_STATE Where Room_acc is not null ;
-
+SELECT Reservation, Room_acc, total_price
+From CURRENT_HOTEL_STATE
+Where Room_acc is not null;
 
 
 
@@ -616,21 +651,21 @@ SELECT Reservation,Room_acc,total_price  From CURRENT_HOTEL_STATE Where Room_acc
 
 
 WITH room_acc_stats AS (SELECT Room_accommodation.room_id,
-                            CASE
-                                WHEN class_luxury = 'Junior Suite' THEN 100
-                                WHEN class_luxury = 'Deluxe Suite' THEN 150
-                                WHEN class_luxury = 'Executive Suite' THEN 250
-                                WHEN class_luxury = 'Terrace Suite' THEN 350
-                                ELSE 0
-                                    END AS room_rate,
-                            CASE
-                                WHEN payment_status = 'Unpaid' THEN 'Occupied'
-                                ELSE 'Available'
-                                END AS room_status
+                               CASE
+                                   WHEN class_luxury = 'Junior Suite' THEN 100
+                                   WHEN class_luxury = 'Deluxe Suite' THEN 150
+                                   WHEN class_luxury = 'Executive Suite' THEN 250
+                                   WHEN class_luxury = 'Terrace Suite' THEN 350
+                                   ELSE 0
+                                   END AS room_rate,
+                               CASE
+                                   WHEN payment_status = 'Unpaid' THEN 'Occupied'
+                                   ELSE 'Available'
+                                   END AS room_status
                         FROM Room_accommodation
-                        LEFT OUTER JOIN Reserved_rooms_acc
-                            on Room_accommodation.room_id = Reserved_rooms_acc.room_id
-                        LEFT OUTER JOIN Reservation ON Reserved_rooms_acc.reservation_id = Reservation.id)
+                                 LEFT OUTER JOIN Reserved_rooms_acc
+                                                 on Room_accommodation.room_id = Reserved_rooms_acc.room_id
+                                 LEFT OUTER JOIN Reservation ON Reserved_rooms_acc.reservation_id = Reservation.id)
 SELECT room_id, room_rate, room_status
 FROM room_acc_stats
 WHERE room_rate > 0
