@@ -8,9 +8,10 @@ BEGIN
     EXECUTE IMMEDIATE 'DROP TABLE Room_accommodation CASCADE CONSTRAINTS';
     EXECUTE IMMEDIATE 'DROP TABLE Reserved_rooms_acc CASCADE CONSTRAINTS';
     EXECUTE IMMEDIATE 'DROP TABLE Reserved_rooms_event CASCADE CONSTRAINTS';
+    EXECUTE IMMEDIATE 'DROP MATERIALIZED VIEW current_hotel_state';
 EXCEPTION
     WHEN OTHERS THEN
-        IF SQLCODE != -942 AND SQLCODE != -4080 THEN
+        IF SQLCODE != -942 AND SQLCODE != -12003 THEN
             RAISE;
         END IF;
 END;
@@ -280,32 +281,27 @@ END;
 -- from Room_accommodation
 -- where room_id = 1;
 
-BEGIN
-    UPDATE Room_accommodation
-    SET personal_id = '1111111111'
-    WHERE room_id = 1; --room no.1 is already occupied, therefore we cannot assign a new customer to it.
-EXCEPTION
-    WHEN OTHERS THEN
-        IF SQLCODE = -20100 THEN
-            DBMS_OUTPUT.PUT_LINE('EXCEPTION CAUGHT: -20100: room is already occupied');
-        END IF;
-END;
-
-
+-- BEGIN
+--     UPDATE Room_accommodation
+--     SET personal_id = '1111111111'
+--     WHERE room_id = 1; --room no.1 is already occupied, therefore we cannot assign a new customer to it.
+-- EXCEPTION
+--     WHEN OTHERS THEN
+--         IF SQLCODE = -20100 THEN
+--             DBMS_OUTPUT.PUT_LINE('EXCEPTION CAUGHT: -20100: room is already occupied');
+--         END IF;
+-- END;
+--
+-- UPDATE Room_accommodation
+-- SET personal_id = NULL
+-- WHERE room_id = 1; --the old customer must be checked out (set to null) before adding the new one
+--
+-- UPDATE Room_accommodation
+-- SET personal_id = '1111111111'
+-- WHERE room_id = 1;
 
 -------------- TRIGGER - reservation paid  --------------
 ---------------------------------------------------------
-
-
-UPDATE Room_accommodation
-SET personal_id = NULL
-WHERE room_id = 1; --the old customer must be checked out (set to null) before adding the new one
-
-UPDATE Room_accommodation
-SET personal_id = '1111111111'
-WHERE room_id = 1;
-
-
 
 CREATE OR REPLACE TRIGGER reservation_paid_trigger
     AFTER UPDATE
@@ -328,7 +324,7 @@ BEGIN
         WHERE room_id = (SELECT room_id FROM Reserved_rooms_acc WHERE reservation_id = :NEW.id);
 
         -- Remove the row from the reserved_room table
-        DELETE FROM Reserved_rooms_acc WHERE reservation_id = :NEW.id;
+        DELETE FROM Reserved_rooms_acc WHERE reservation_id = :new.id;
         COMMIT;
     END IF;
 
@@ -352,8 +348,8 @@ where id = 1;
 --          join Room_accommodation room on res_room.room_id = room.room_id
 -- where id = 1;
 --
--- select *
--- from Reserved_rooms_acc;
+select *
+from Reserved_rooms_acc;
 
 
 
@@ -581,6 +577,40 @@ GRANT EXECUTE ON check_num_of_customers TO XCAGAL00;
 
 
 
+-------------- MATERIALIZED VIEW current_hotel_state --------------
+-------------------------------------------------------------------
+
+
+
+CREATE MATERIALIZED VIEW current_hotel_state
+AS
+SELECT Res.id AS Reservation, Cust.first_name AS Name, Cust.surname AS Surname, Cust.personal_id AS pid, W.id AS Worker,
+       W.surname AS Worker_surname,RA.room_id AS Room_acc, E.type AS Event, RE.room_id AS Room_event, SE.name AS Service, Res.total_price
+FROM Customer Cust
+JOIN Reservation Res ON Cust.personal_id = Res.personal_id
+JOIN Worker W ON Res.worker_id = W.id
+LEFT JOIN Reserved_rooms_acc RRA ON Res.id = RRA.reservation_id
+LEFT JOIN Room_accommodation RA ON RRA.room_id = RA.room_id
+LEFT JOIN Event E ON Res.id = E.reservation_id
+LEFT JOIN Room_event RE ON E.event_id = RE.event_id
+LEFT JOIN Service SE ON Res.id = SE.reservation_id
+ORDER BY Res.id;
+
+GRANT ALL PRIVILEGES ON current_hotel_state TO XCAGAL00;
+-- current state
+SELECT * FROM current_hotel_state;
+-- select display all workers and which reservations they are currently managing
+SELECT Worker,Worker_surname, Reservation From CURRENT_HOTEL_STATE;
+-- select display all reservations, surname and total price
+SELECT Reservation,Surname, total_price From CURRENT_HOTEL_STATE;
+-- every event, location of event and price
+SELECT Event,Room_event,total_price  From CURRENT_HOTEL_STATE Where Event is not null ;
+-- every accomodation, location and price
+SELECT Reservation,Room_acc,total_price  From CURRENT_HOTEL_STATE Where Room_acc is not null ;
+
+
+
+
 -------------- SELECT WITH, CASE --------------
 -----------------------------------------------
 
@@ -607,23 +637,5 @@ WHERE room_rate > 0
 ORDER BY room_id
         ASC;
 
-DROP MATERIALIZED VIEW current_hotel_state;
 
-CREATE MATERIALIZED VIEW current_hotel_state
-AS
-SELECT Res.id AS Reservation, Cust.first_name AS Name, Cust.surname AS Surname, Cust.personal_id AS pid, W.id AS Worker,
-       RA.room_id AS Room_acc, E.type AS Event, RE.room_id AS Room_event, SE.name AS Service, Res.total_price
-FROM Customer Cust
-JOIN Reservation Res ON Cust.personal_id = Res.personal_id
-JOIN Worker W ON Res.worker_id = W.id
-LEFT JOIN Reserved_rooms_acc RRA ON Res.id = RRA.reservation_id
-LEFT JOIN Room_accommodation RA ON RRA.room_id = RA.room_id
-LEFT JOIN Event E ON Res.id = E.reservation_id
-LEFT JOIN Room_event RE ON E.event_id = RE.event_id
-LEFT JOIN Service SE ON Res.id = SE.reservation_id
-ORDER BY Res.id;
-
-GRANT SELECT ON current_hotel_state TO XCAGAL00;
-
-SELECT * FROM current_hotel_state;
 COMMIT;
