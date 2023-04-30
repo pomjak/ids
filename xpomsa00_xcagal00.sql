@@ -460,13 +460,41 @@ BEGIN
     DBMS_OUTPUT.PUT_LINE('  TOTAL: ' || l_total_price);
 END;
 
+-- DECLARE
+--   CURSOR reservation_cur IS
+--     SELECT id FROM Reservation;
+--   reservation_id Reservation.id%TYPE;
+-- BEGIN
+--   FOR res IN reservation_cur LOOP
+--     reservation_id := res.id;
+--     calculate_total_price(reservation_id);
+--   END LOOP;
+--
+-- EXCEPTION
+--     WHEN OTHERS THEN
+--         IF SQLCODE = -01403 THEN
+--             DBMS_OUTPUT.PUT_LINE('invalid reservation id');
+--         end if;
+-- END;
+
+DECLARE
+  reservation_id Reservation.id%TYPE;
+
+  CURSOR reservation_cur IS
+    SELECT id FROM Reservation;
 BEGIN
-    calculate_total_price(2);
+  FOR res IN reservation_cur LOOP
+    reservation_id := res.id;
+    calculate_total_price(reservation_id);
+  END LOOP;
+
 EXCEPTION
     WHEN OTHERS THEN
         IF SQLCODE = -01403 THEN
-            DBMS_OUTPUT.PUT_LINE('invalid reservation id');
-        end if;
+            BEGIN
+                DBMS_OUTPUT.PUT_LINE('invalid reservation id');
+            END;
+        END IF;
 END;
 
 
@@ -579,4 +607,23 @@ WHERE room_rate > 0
 ORDER BY room_id
         ASC;
 
+DROP MATERIALIZED VIEW current_hotel_state;
+
+CREATE MATERIALIZED VIEW current_hotel_state
+AS
+SELECT Res.id AS Reservation, Cust.first_name AS Name, Cust.surname AS Surname, Cust.personal_id AS pid, W.id AS Worker,
+       RA.room_id AS Room_acc, E.type AS Event, RE.room_id AS Room_event, SE.name AS Service, Res.total_price
+FROM Customer Cust
+JOIN Reservation Res ON Cust.personal_id = Res.personal_id
+JOIN Worker W ON Res.worker_id = W.id
+LEFT JOIN Reserved_rooms_acc RRA ON Res.id = RRA.reservation_id
+LEFT JOIN Room_accommodation RA ON RRA.room_id = RA.room_id
+LEFT JOIN Event E ON Res.id = E.reservation_id
+LEFT JOIN Room_event RE ON E.event_id = RE.event_id
+LEFT JOIN Service SE ON Res.id = SE.reservation_id
+ORDER BY Res.id;
+
+GRANT SELECT ON current_hotel_state TO XCAGAL00;
+
+SELECT * FROM current_hotel_state;
 COMMIT;
