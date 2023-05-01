@@ -274,6 +274,7 @@ BEGIN
     FROM Room_accommodation
     WHERE room_id = :new.room_id
       AND :old.personal_id is not null;
+
     IF :new.personal_id is not null and room_count > 0 then
         raise_application_error(-20100, 'Cannot add customer to already occupied room');
     END IF;
@@ -282,7 +283,7 @@ END;
 -- SELECT room_id, personal_id
 -- from Room_accommodation
 -- where room_id = 1;
-
+--
 -- BEGIN
 --     UPDATE Room_accommodation
 --     SET personal_id = '1111111111'
@@ -301,6 +302,7 @@ END;
 -- UPDATE Room_accommodation
 -- SET personal_id = '1111111111'
 -- WHERE room_id = 1;
+
 
 -------------- TRIGGER - reservation paid  --------------
 ---------------------------------------------------------
@@ -339,9 +341,9 @@ END;
 --          join Room_accommodation room on res_room.room_id = room.room_id
 -- where id = 1;
 
-UPDATE Reservation
-set payment_status = 'Paid'
-where id = 1;
+-- UPDATE Reservation
+-- set payment_status = 'Paid'
+-- where id = 1;
 
 -- after update
 -- select res.id, payment_status, room.personal_id
@@ -350,9 +352,6 @@ where id = 1;
 --          join Room_accommodation room on res_room.room_id = room.room_id
 -- where id = 1;
 --
-select *
-from Reserved_rooms_acc;
-
 
 
 -------------- Procedure - calculate the price of a stay --------------
@@ -564,6 +563,8 @@ GRANT EXECUTE ON check_num_of_customers TO XCAGAL00;
 
 -------------- EXPLAIN PLAN, INDEX --------------
 -------------------------------------------------
+
+
 SELECT index_name, table_name
 FROM user_indexes;
 
@@ -595,8 +596,6 @@ EXPLAIN PLAN FOR
 -- After index
 SELECT PLAN_TABLE_OUTPUT FROM TABLE(DBMS_XPLAN.DISPLAY());
 
-DROP INDEX index_ser;
-DROP INDEX index_res;
 
 -------------- MATERIALIZED VIEW current_hotel_state --------------
 -------------------------------------------------------------------
@@ -626,23 +625,31 @@ FROM Customer Cust
 ORDER BY Res.id;
 
 GRANT ALL PRIVILEGES ON current_hotel_state TO XCAGAL00;
+
 -- current state
 SELECT *
 FROM current_hotel_state;
+
 -- select display all workers and which reservations they are currently managing
-SELECT Worker, Worker_surname, Reservation
-From CURRENT_HOTEL_STATE;
+SELECT DISTINCT Worker, Worker_surname, Reservation
+From CURRENT_HOTEL_STATE
+ORDER BY Worker;
+
 -- select display all reservations, surname and total price
-SELECT Reservation, Surname, total_price
-From CURRENT_HOTEL_STATE;
+SELECT Distinct Reservation, Surname, total_price
+From CURRENT_HOTEL_STATE
+ORDER BY Reservation;
+
 -- every event, location of event and price
 SELECT Event, Room_event, total_price
 From CURRENT_HOTEL_STATE
 Where Event is not null;
+
 -- every accomodation, location and price
-SELECT Reservation, Room_acc, total_price
+SELECT Distinct Reservation, Room_acc, total_price
 From CURRENT_HOTEL_STATE
-Where Room_acc is not null;
+Where Room_acc is not null
+ORDER BY Reservation;
 
 
 
@@ -671,6 +678,5 @@ FROM room_acc_stats
 WHERE room_rate > 0
 ORDER BY room_id
         ASC;
-
 
 COMMIT;
