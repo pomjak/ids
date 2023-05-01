@@ -567,7 +567,7 @@ GRANT EXECUTE ON check_num_of_customers TO XCAGAL00;
 
 SELECT index_name, table_name
 FROM user_indexes;
-
+-- In PL/SQL, EXPLAIN PLAN generates a query execution plan that shows how Oracle will execute a SQL statement
 EXPLAIN PLAN FOR
     SELECT TO_CHAR(start_date,'MM') AS month, COUNT(*) as number_of_reservations,COUNT(service_id) as number_of_services,
        COALESCE( SUM(S.price) , 0) as service_price , SUM(total_price)  as total_price
@@ -579,13 +579,16 @@ EXPLAIN PLAN FOR
 -- before index
 SELECT PLAN_TABLE_OUTPUT FROM TABLE(DBMS_XPLAN.DISPLAY());
 
+-- An index can optimize a SELECT statement by storing a copy of frequently used columns
+-- in a separate structure, allowing to retrieve data faster.
 CREATE INDEX index_res ON Reservation(start_date);
 CREATE INDEX index_ser ON Service(reservation_id);
 
 SELECT index_name, table_name
 FROM user_indexes;
 
-
+-- After creating an index, EXPLAIN PLAN can generate a new query execution plan
+-- that shows how Oracle will execute the SQL statement with the new index
 EXPLAIN PLAN FOR
     SELECT TO_CHAR(start_date,'MM') AS month, COUNT(*) as number_of_reservations,COUNT(service_id) as number_of_services,
        COALESCE( SUM(S.price) , 0) as service_price , SUM(total_price)  as total_price
@@ -593,6 +596,7 @@ EXPLAIN PLAN FOR
     LEFT JOIN Service S on Reservation.id = S.reservation_id
     GROUP BY(TO_CHAR(start_date,'MM'))
     ORDER BY(TO_CHAR(start_date, 'MM'));
+
 -- After index
 SELECT PLAN_TABLE_OUTPUT FROM TABLE(DBMS_XPLAN.DISPLAY());
 
